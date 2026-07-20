@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Runtime data & model cache
+data/
+models/
+
+# Misc
+.DS_Store
+Thumbs.db

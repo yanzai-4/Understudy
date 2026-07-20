@@ -1,0 +1,265 @@
+@import "tailwindcss";
+
+/*
+ * Understudy dark blue/black theme.
+ * `night` is the background/surface scale; accents use the built-in blue/cyan palette.
+ */
+@theme {
+  --color-night-950: #04070e; /* page background */
+  --color-night-900: #0a1020; /* sidebar / panels */
+  --color-night-850: #0e1628;
+  --color-night-800: #131d33; /* cards */
+  --color-night-700: #1c2a4a; /* borders, hover surfaces */
+  --color-night-600: #2b3d66;
+  --color-night-500: #3d5288;
+
+  --color-accent-glow: #38bdf8; /* cyan-400 */
+  --color-accent: #3b82f6; /* blue-500 */
+  --color-accent-deep: #1d4ed8; /* blue-700 */
+
+  --font-display: "Inter", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+html {
+  font-family: var(--font-display);
+}
+
+body {
+  @apply bg-night-950 text-slate-200 antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 80% -10%, rgb(29 78 216 / 0.12), transparent),
+    radial-gradient(900px 500px at -10% 110%, rgb(56 189 248 / 0.06), transparent);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* ---------- Accessibility floor ---------- */
+
+/* Visible keyboard focus (mouse clicks don't trigger :focus-visible) */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgb(56 189 248 / 0.75);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+/* Honor reduced-motion everywhere (splash, card hovers, sidebar sub-tree) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Splash screen (opening title) ---------- */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-night-950);
+  background-image:
+    radial-gradient(900px 460px at 70% 20%, rgb(29 78 216 / 0.14), transparent),
+    radial-gradient(700px 400px at 25% 85%, rgb(56 189 248 / 0.07), transparent);
+  transition: opacity 0.45s ease;
+}
+.splash.splash-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* viewfinder brackets settle first */
+.splash .logo-brackets {
+  animation: splash-fade 0.45s ease both;
+}
+
+/* the bone draws itself */
+.splash .logo-bone {
+  stroke-dasharray: 100;
+  animation: splash-draw 0.85s cubic-bezier(0.65, 0.05, 0.3, 1) 0.25s both;
+}
+@keyframes splash-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* keypoints pop in, staggered */
+.splash .logo-joint {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: splash-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.splash .logo-joint-0 {
+  animation-delay: 0.78s;
+}
+.splash .logo-joint-1 {
+  animation-delay: 0.92s;
+}
+.splash .logo-joint-2 {
+  animation-delay: 1.06s;
+}
+@keyframes splash-pop {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* wordmark tracks into place */
+.splash-wordmark {
+  animation: splash-word 0.6s ease 0.95s both;
+}
+@keyframes splash-word {
+  from {
+    opacity: 0;
+    letter-spacing: 0.4em;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.02em;
+    transform: none;
+  }
+}
+.splash-tagline {
+  animation: splash-fade 0.5s ease 1.25s both;
+}
+
+/* editing-timeline ruler: ticks light up in sequence, playhead sweeps */
+.splash-tick {
+  animation: splash-fade 0.25s ease both;
+  animation-delay: calc(1.02s + var(--i) * 32ms);
+}
+.splash-playhead {
+  box-shadow: 0 0 6px rgb(103 232 249 / 0.8);
+  animation: splash-sweep 0.72s cubic-bezier(0.4, 0, 0.2, 1) 1.12s both;
+}
+@keyframes splash-sweep {
+  from {
+    left: 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  to {
+    left: calc(100% - 1px);
+    opacity: 1;
+  }
+}
+
+@keyframes splash-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* reduced motion: land everything in its final state instantly */
+@media (prefers-reduced-motion: reduce) {
+  .splash * {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* ---------- Sidebar breadcrumb sub-tree ---------- */
+
+.subnav {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    grid-template-rows 0.28s ease,
+    opacity 0.22s ease,
+    transform 0.28s ease;
+}
+.subnav.subnav-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
+.subnav-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ---------- Whiteboard (React Flow) dark theme ---------- */
+
+.react-flow {
+  --xy-background-color: transparent;
+  --xy-controls-button-background-color: #0e1628;
+  --xy-controls-button-background-color-hover: #1c2a4a;
+  --xy-controls-button-color: #94a3b8;
+  --xy-controls-button-color-hover: #e2e8f0;
+  --xy-controls-button-border-color: #1c2a4a;
+  --xy-controls-box-shadow: 0 4px 16px rgb(0 0 0 / 0.45);
+}
+.react-flow__controls {
+  border-radius: 10px;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  width: 26px;
+  height: 26px;
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+.react-flow__minimap {
+  background: var(--color-night-900);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.45);
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #67e8f9 !important;
+  stroke-width: 2.4 !important;
+}
+.react-flow__handle {
+  z-index: 5;
+}
+/* keep handles visible while a connection is being dragged */
+.react-flow__node.connectablestart .react-flow__handle,
+.react-flow__node.connectableend .react-flow__handle {
+  pointer-events: all;
+}
+
+/* Slim dark scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-night-600) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-night-600);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}

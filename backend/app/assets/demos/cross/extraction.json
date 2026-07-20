@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "stride": 10,
+  "max_size": 768,
+  "output_size": [
+    768,
+    432
+  ],
+  "effective_fps": 2.997,
+  "frame_count": 29,
+  "channels": [
+    "pose",
+    "depth",
+    "canny"
+  ],
+  "index_map": [
+    {
+      "out": 0,
+      "src": 0,
+      "t": 0.0
+    },
+    {
+      "out": 1,
+      "src": 10,
+      "t": 0.3337
+    },
+    {
+      "out": 2,
+      "src": 20,
+      "t": 0.6673
+    },
+    {
+      "out": 3,
+      "src": 30,
+      "t": 1.001
+    },
+    {
+      "out": 4,
+      "src": 40,
+      "t": 1.3347
+    },
+    {
+      "out": 5,
+      "src": 50,
+      "t": 1.6683
+    },
+    {
+      "out": 6,
+      "src": 60,
+      "t": 2.002
+    },
+    {
+      "out": 7,
+      "src": 70,
+      "t": 2.3357
+    },
+    {
+      "out": 8,
+      "src": 80,
+      "t": 2.6693
+    },
+    {
+      "out": 9,
+      "src": 90,
+      "t": 3.003
+    },
+    {
+      "out": 10,
+      "src": 100,
+      "t": 3.3367
+    },
+    {
+      "out": 11,
+      "src": 110,
+      "t": 3.6703
+    },
+    {
+      "out": 12,
+      "src": 120,
+      "t": 4.004
+    },
+    {
+      "out": 13,
+      "src": 130,
+      "t": 4.3377
+    },
+    {
+      "out": 14,
+      "src": 140,
+      "t": 4.6713
+    },
+    {
+      "out": 15,
+      "src": 150,
+      "t": 5.005
+    },
+    {
+      "out": 16,
+      "src": 160,
+      "t": 5.3387
+    },
+    {
+      "out": 17,
+      "src": 170,
+      "t": 5.6723
+    },
+    {
+      "out": 18,
+      "src": 180,
+      "t": 6.006
+    },
+    {
+      "out": 19,
+      "src": 190,
+      "t": 6.3397
+    },
+    {
+      "out": 20,
+      "src": 200,
+      "t": 6.6733
+    },
+    {
+      "out": 21,
+      "src": 210,
+      "t": 7.007
+    },
+    {
+      "out": 22,
+      "src": 220,
+      "t": 7.3407
+    },
+    {
+      "out": 23,
+      "src": 230,
+      "t": 7.6743
+    },
+    {
+      "out": 24,
+      "src": 240,
+      "t": 8.008
+    },
+    {
+      "out": 25,
+      "src": 250,
+      "t": 8.3417
+    },
+    {
+      "out": 26,
+      "src": 260,
+      "t": 8.6753
+    },
+    {
+      "out": 27,
+      "src": 270,
+      "t": 9.009
+    },
+    {
+      "out": 28,
+      "src": 280,
+      "t": 9.3427
+    }
+  ],
+  "summaries": {
+    "pose": {
+      "model": "rtmpose-m body7 (rtmlib balanced, openpose format)",
+      "missing_frames": 0
+    },
+    "depth": {
+      "model": "depth-anything-v2-small (model)",
+      "normalization": "per_frame"
+    },
+    "canny": {
+      "low_threshold": 100,
+      "high_threshold": 200
+    }
+  },
+  "source": {
+    "width": 1280,
+    "height": 720,
+    "fps": 29.97,
+    "frame_count": 290
+  }
+}

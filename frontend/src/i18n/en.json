@@ -1,0 +1,336 @@
+{
+  "app": {
+    "name": "Understudy",
+    "tagline": "Direct AI video with a rough take"
+  },
+  "nav": {
+    "films": "Films",
+    "settings": "Settings"
+  },
+  "common": {
+    "create": "Create",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "rename": "Rename",
+    "search": "Search",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "prev": "Previous",
+    "loading": "Loading…",
+    "empty": "Nothing here yet",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "page": "Page {{page}} of {{total}}",
+    "comingSoon": "Coming soon…"
+  },
+  "films": {
+    "title": "Films",
+    "newFilm": "New Film",
+    "editFilm": "Edit Film",
+    "empty": "No films yet — click “New Film” to get started",
+    "noResults": "No films match your search",
+    "searchPlaceholder": "Search films…",
+    "nameLabel": "Film name",
+    "namePlaceholder": "e.g. Chase in the Night",
+    "descLabel": "Description",
+    "descPlaceholder": "What is this film about (optional)",
+    "sortUpdated": "Recently updated",
+    "sortCreated": "Date created",
+    "sortName": "Name",
+    "stats": "{{shots}} shots · {{scenes}} scenes · {{exported}} exported",
+    "shotCount": "{{count}} shots",
+    "sceneCount": "{{count}} scenes",
+    "exportedCount": "{{count}} exported",
+    "deleteTitle": "Delete Film",
+    "deleteMessage": "Delete “{{name}}”? Its {{count}} shots and all extracted data will be removed. This cannot be undone."
+  },
+  "shots": {
+    "newShot": "New Shot",
+    "editShot": "Edit Shot",
+    "duplicate": "Duplicate as new version",
+    "empty": "No shots yet — click “New Shot” to get started",
+    "noResults": "No shots match the current filters",
+    "searchPlaceholder": "Search shot name / notes…",
+    "nameLabel": "Shot name",
+    "namePlaceholder": "e.g. Alley standoff",
+    "sceneLabel": "Scene number (optional)",
+    "scenePlaceholder": "e.g. 3",
+    "tagsLabel": "Tags",
+    "tagsPlaceholder": "Press Enter to add tags, e.g. night, action",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Director notes / intent (optional)",
+    "allScenes": "All scenes",
+    "sceneN": "Scene {{n}}",
+    "unassignedScene": "Unassigned",
+    "allStatus": "All statuses",
+    "status": {
+      "draft": "Draft",
+      "extracted": "Extracted",
+      "exported": "Exported"
+    },
+    "pick": "Pick this take",
+    "pickedOnly": "Picked only",
+    "view": {
+      "storyboard": "Storyboard",
+      "board": "Whiteboard"
+    },
+    "deleteTitle": "Delete Shot",
+    "deleteMessage": "Delete shot “{{name}}”? Its extracted data and exports will be removed. This cannot be undone."
+  },
+  "guide": {
+    "title": "How it works",
+    "subtitle": "From rough footage to controllable AI video in five steps",
+    "reopen": "Show the workflow",
+    "create": {
+      "title": "Create a film & shots",
+      "desc": "A film holds multiple shots, organized by scene and version"
+    },
+    "upload": {
+      "title": "Upload rough footage",
+      "desc": "A quick handheld take is enough — only motion and framing are used"
+    },
+    "extract": {
+      "title": "Extract control signals",
+      "desc": "Pose skeletons, depth maps and edge outlines, automatically"
+    },
+    "lens": {
+      "title": "Focus & cinematography",
+      "desc": "Click to set rack focus; pick aperture, lighting and color grade"
+    },
+    "export": {
+      "title": "Export & feed the AI",
+      "desc": "One package of prompt + signals for ComfyUI or hosted platforms"
+    }
+  },
+  "board": {
+    "autoLayout": "Tidy layout",
+    "hint": "Drag edge dots to connect · double-click an edge to delete · double-click a card to open",
+    "dragHint": "Drag cards to arrange; dragging into/out of a scene frame reassigns the shot's scene"
+  },
+  "wizard": {
+    "steps": {
+      "upload": "Upload",
+      "extract": "Extract",
+      "preview": "Preview & Annotate",
+      "lens": "Focus & Zoom",
+      "camera": "Cinematography",
+      "export": "Export"
+    }
+  },
+  "lens": {
+    "hintBar": "Switch Focus/Zoom at the top of the right panel. In Focus mode, scrub to a frame and click the frame to set the focus point; in Zoom mode, click to set the center and pick a focal length. Each point shows as a diamond on the timeline, and multiple points interpolate into a rack focus / zoom.",
+    "mode": {
+      "focus": "Focus",
+      "zoom": "Zoom"
+    },
+    "source": {
+      "original": "Original",
+      "live": "Live preview",
+      "rendered": "Rendered"
+    },
+    "clickHintFocus": "Click the frame to set focus at that point's depth (current frame)",
+    "clickHintZoom": "Click the frame to set the zoom center for the current frame",
+    "noDepth": "Focus control needs the depth channel — extract depth first",
+    "focusTitle": "Focus (rack focus)",
+    "zoomTitle": "Zoom / focal length",
+    "focalPlane": "Focal plane",
+    "zoneNear": "near",
+    "zoneMid": "mid",
+    "zoneFar": "far",
+    "laneFocus": "Focus keyframes",
+    "laneZoom": "Zoom keyframes",
+    "noFocusKfs": "Scrub to a frame, then click where you want the focus",
+    "noZoomKfs": "Switch to Zoom mode, click to set the center and pick a focal length",
+    "labelPlaceholder": "Subject name (goes into the prompt)",
+    "maxBlur": "Blur strength",
+    "falloff": "Falloff range",
+    "easing": "Easing",
+    "easeSmooth": "Smooth",
+    "easeLinear": "Linear",
+    "zoomHint": "Zoom scales every control signal (pose/depth/canny) at export and enters the prompt.",
+    "staticFocal": "Fixed focal length",
+    "promptWillInclude": "Lens phrases that will enter the prompt",
+    "noPhrases": "None yet — enable focus or pick a focal length",
+    "renderSequence": "Render DoF sequence",
+    "skip": "Skip this step"
+  },
+  "extract": {
+    "channels": "Control signal channels",
+    "channel": {
+      "pose": "Pose",
+      "depth": "Depth",
+      "canny": "Canny"
+    },
+    "unavailable": "unavailable",
+    "stride": "Frame sampling",
+    "strideAuto": "Auto (1 of every {{n}} frames)",
+    "strideN": "1 of every {{n}} frames",
+    "maxSize": "Processing resolution (long edge)",
+    "recommended": " (recommended)",
+    "willOutput": "≈ {{frames}} output frames",
+    "estimate": "Estimated time ≈ {{time}}",
+    "start": "Start extraction",
+    "rerun": "Re-extract",
+    "done": "Extraction complete — {{frames}} frames",
+    "cancelled": "Cancelled — you can start again",
+    "stageExtract": "Extracting {{detail}}",
+    "stage": {
+      "downloading_models": "Downloading models…",
+      "loading_models": "Loading models…",
+      "finalizing": "Finalizing…"
+    }
+  },
+  "export": {
+    "readyTitle": "Extraction complete — ready to export",
+    "readyDetail": "Extracted {{channels}}, {{frames}} frames. Pick what to include, then package below.",
+    "contents": "Package contents",
+    "channelSeq": "{{ch}} PNG sequence",
+    "controlVideos": "Control-signal mp4 videos (for web-based platforms)",
+    "sourceVideo": "Original source video",
+    "masksAuto": "Background edit masks + descriptions ({{count}} annotations, automatic)",
+    "always": "prompt.txt / metadata.json / README guide (always included)",
+    "start": "Generate prompt & export",
+    "again": "Export again",
+    "working": "Packaging…",
+    "done": "Export complete",
+    "history": "Export history"
+  },
+  "camera": {
+    "formTitle": "Cinematography",
+    "previewTitle": "Live prompt preview",
+    "unspecified": "— unspecified —",
+    "presetChip": "preset",
+    "fromPreset": "Inherited from the film style preset",
+    "subjectDesc": "Subject description",
+    "subjectPlaceholder": "e.g. a young woman in a red trench coat",
+    "sceneDesc": "Scene description",
+    "scenePlaceholder": "e.g. narrow neon-lit alley in a rainy city",
+    "customPositive": "Extra positive terms",
+    "customPositivePlaceholder": "Appended to the end of the prompt",
+    "customNegative": "Extra negative terms",
+    "customNegativePlaceholder": "Appended to the negative prompt",
+    "positive": "Positive prompt",
+    "negative": "Negative prompt",
+    "emptyPrompt": "Pick parameters or fill descriptions — the prompt builds here live",
+    "bgEdits": "Background edits (exported with masks)",
+    "bgEditsHint": "These are not merged into the main prompt — each region ships with its own mask and description for masked-editing tools (e.g. VACE).",
+    "save": {
+      "saved": "Saved",
+      "saving": "Saving…",
+      "dirty": "Editing…"
+    }
+  },
+  "provider": {
+    "confirmTitle": "Switch inference backend",
+    "confirmBody": "Switch to {{target}}? This reinstalls the onnxruntime dependency and restarts the app automatically (about a minute). The window will close and reopen on its own. Continue?",
+    "confirmBtn": "Switch & restart",
+    "restartingTitle": "Switching and restarting…",
+    "restartingBody": "The window will close while the dependency reinstalls, then reopen automatically (about a minute). Please don't kill the background process."
+  },
+  "reset": {
+    "title": "Reset app",
+    "hint": "Erase every film, shot, control signal and export, then recreate the bundled demo projects (deletable anytime). This can't be undone.",
+    "button": "Reset everything",
+    "warning": "All films, shots, extracted control signals, background annotations and export records will be permanently deleted, then the bundled demo projects are recreated. This cannot be undone.",
+    "typePrompt": "To continue, type",
+    "confirmBtn": "Reset permanently",
+    "working": "Resetting…"
+  },
+  "preset": {
+    "button": "Style preset",
+    "title": "Film style preset",
+    "hint": "Set default cinematography for the whole film (e.g. one color grade and visual style). New shots inherit these as initial values; existing shots are unaffected.",
+    "perFilm": "This preset applies only to the current film — each film has its own independent style preset."
+  },
+  "bgEdit": {
+    "annotate": "Annotate background edits",
+    "annotatingOn": "Annotating · drag on the frame to draw",
+    "hint": "Drag on the frame to draw boxes over background regions to remove/add/replace. Boxes export as masks for AI inpainting.",
+    "empty": "No background annotations yet",
+    "newTitle": "New background edit",
+    "editTitle": "Edit background edit",
+    "labelLabel": "Label",
+    "labelPlaceholder": "e.g. Remove building on the right",
+    "typeLabel": "Edit type",
+    "type": {
+      "remove": "Remove",
+      "add": "Add",
+      "replace": "Replace"
+    },
+    "descLabel": "Description (goes into the prompt)",
+    "descPlaceholder": "e.g. replace with a dense forest",
+    "deleteTitle": "Delete annotation",
+    "deleteMessage": "Delete annotation “{{name}}” and its mask files?"
+  },
+  "preview": {
+    "hintBar": "Scrub the frame slider to review frames. Click “Annotate background edits” on the right, then drag on the frame to draw a box over a region to remove/add/replace; drag its corners to adjust.",
+    "mode": {
+      "overlay": "Overlay",
+      "split": "Split"
+    },
+    "source": "Source",
+    "depthOpacity": "Depth opacity",
+    "framesAt": "frames @ {{fps}}fps"
+  },
+  "upload": {
+    "dropHint": "Drop a video here, or click to browse",
+    "replaceHint": "Drop or click to re-upload",
+    "replaceWarning": "Re-uploading replaces the current video and clears the extracted control signals, background annotations and exports; the wizard also returns to step 1.",
+    "replaceTitle": "Re-upload video",
+    "replaceConfirm": "Replace the current video? The extracted pose / depth / canny, background annotations and export history will all be removed. This cannot be undone.",
+    "replaceConfirmBtn": "Replace & clear",
+    "formats": "MP4 / MOV / AVI / MKV / WebM, up to 2 GB",
+    "uploading": "Uploading {{pct}}%",
+    "resolution": "Resolution",
+    "fps": "FPS",
+    "frames": "Frames",
+    "duration": "Duration"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Interface language",
+    "provider": "Inference backend",
+    "providerHint": "CPU works everywhere; the GPU backend accelerates depth estimation (DirectML on Windows, CoreML on macOS)",
+    "providerAutoNote": "Switching reinstalls the dependency and restarts the app automatically — no manual steps.",
+    "providerInstantNote": "The switch takes effect on your next extraction — no reinstall or restart.",
+    "reinstallGuide": "Auto-switch is unavailable (the exe may not be built). Close the app, run this script in PowerShell from the project folder, then restart:",
+    "extraction": "Extraction defaults",
+    "defaultMaxSize": "Default resolution (long edge)",
+    "recommendedForDevice": " (recommended for this device)",
+    "depthVariant": "Depth model precision",
+    "depthFast": "faster",
+    "depthAccurate": "more accurate",
+    "cannyLow": "Canny low threshold",
+    "cannyHigh": "Canny high threshold",
+    "models": "Model status",
+    "modelsHint": "Models download during install and are fetched automatically on first extraction if missing — no manual action needed.",
+    "modelAuto": "will auto-download",
+    "redetect": "Re-detect"
+  },
+  "firstRun": {
+    "title": "Welcome to Understudy",
+    "subtitle": "One-time setup: confirm hardware and extraction preferences",
+    "hardware": "Hardware",
+    "cores": "cores",
+    "provider": "Inference backend",
+    "recommendedSize": "recommended resolution",
+    "tierCpu": "No usable GPU detected — CPU inference will be used. This only affects the default processing resolution ({{size}}px) and extraction speed, not any features.",
+    "tierLow": "Less than 16 GB RAM and no usable GPU detected — using the low-spec tier. This only affects the default processing resolution ({{size}}px) and extraction speed, not any features.",
+    "models": "Extraction models",
+    "depthTitle": "Depth model — Depth Anything V2 Small",
+    "depth_int8": "int8",
+    "depth_fp32": "fp32",
+    "depthHint_int8": "Faster and smaller, recommended for CPU",
+    "depthHint_fp32": "More accurate and detailed, slower inference",
+    "autoDownload": "Required models are downloaded during install; if missing, the first extraction fetches them automatically.",
+    "ready": "Ready",
+    "start": "Get started"
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "schema_version": 2,
+  "negative_default": "blurry, low quality, lowres, distorted face, deformed hands, extra limbs, watermark, text, logo, jpeg artifacts, flickering, inconsistent lighting, morphing",
+  "focal_lengths": [
+    { "key": "16mm", "label_zh": "16mm 超广角", "label_en": "16mm ultra-wide", "fragment": "shot on 16mm ultra wide lens, dramatic expansive perspective" },
+    { "key": "24mm", "label_zh": "24mm 广角", "label_en": "24mm wide", "fragment": "shot on 24mm wide angle lens" },
+    { "key": "35mm", "label_zh": "35mm", "label_en": "35mm", "fragment": "shot on 35mm lens, natural field of view" },
+    { "key": "50mm", "label_zh": "50mm 标准", "label_en": "50mm standard", "fragment": "shot on 50mm lens, natural perspective" },
+    { "key": "85mm", "label_zh": "85mm 人像", "label_en": "85mm portrait", "fragment": "shot on 85mm portrait lens, compressed background" },
+    { "key": "135mm", "label_zh": "135mm 长焦", "label_en": "135mm telephoto", "fragment": "shot on 135mm telephoto lens, strong background compression" }
+  ],
+  "dimensions": [
+    {
+      "key": "shot_size",
+      "label_zh": "景别",
+      "label_en": "Shot size",
+      "order": 10,
+      "options": [
+        { "key": "extreme_wide", "label_zh": "大远景", "label_en": "Extreme wide", "fragment": "extreme wide shot" },
+        { "key": "wide", "label_zh": "远景", "label_en": "Wide", "fragment": "wide shot" },
+        { "key": "full", "label_zh": "全景", "label_en": "Full", "fragment": "full shot" },
+        { "key": "medium", "label_zh": "中景", "label_en": "Medium", "fragment": "medium shot" },
+        { "key": "medium_close", "label_zh": "中近景", "label_en": "Medium close-up", "fragment": "medium close-up" },
+        { "key": "close_up", "label_zh": "特写", "label_en": "Close-up", "fragment": "close-up shot" },
+        { "key": "extreme_close", "label_zh": "大特写", "label_en": "Extreme close-up", "fragment": "extreme close-up, macro detail" }
+      ]
+    },
+    {
+      "key": "camera_angle",
+      "label_zh": "机位角度",
+      "label_en": "Camera angle",
+      "order": 20,
+      "options": [
+        { "key": "eye_level", "label_zh": "平视", "label_en": "Eye level", "fragment": "eye-level angle" },
+        { "key": "low", "label_zh": "低角度仰拍", "label_en": "Low angle", "fragment": "low angle shot, looking up" },
+        { "key": "high", "label_zh": "高角度俯拍", "label_en": "High angle", "fragment": "high angle shot, looking down" },
+        { "key": "overhead", "label_zh": "顶视俯拍", "label_en": "Overhead", "fragment": "overhead top-down shot" },
+        { "key": "dutch", "label_zh": "荷兰角", "label_en": "Dutch angle", "fragment": "dutch angle, tilted frame" },
+        { "key": "ots", "label_zh": "过肩镜头", "label_en": "Over-the-shoulder", "fragment": "over-the-shoulder shot" }
+      ]
+    },
+    {
+      "key": "camera_move",
+      "label_zh": "运镜",
+      "label_en": "Camera movement",
+      "order": 30,
+      "options": [
+        { "key": "static", "label_zh": "固定机位", "label_en": "Static", "fragment": "static locked-off shot" },
+        { "key": "push_in", "label_zh": "缓慢推近", "label_en": "Slow push-in", "fragment": "slow push-in camera movement" },
+        { "key": "pull_back", "label_zh": "缓慢拉远", "label_en": "Slow pull-back", "fragment": "slow pull-back camera movement" },
+        { "key": "pan_left", "label_zh": "左摇", "label_en": "Pan left", "fragment": "smooth pan left" },
+        { "key": "pan_right", "label_zh": "右摇", "label_en": "Pan right", "fragment": "smooth pan right" },
+        { "key": "tilt_up", "label_zh": "上仰", "label_en": "Tilt up", "fragment": "camera tilting up" },
+        { "key": "tilt_down", "label_zh": "下俯", "label_en": "Tilt down", "fragment": "camera tilting down" },
+        { "key": "tracking", "label_zh": "跟拍", "label_en": "Tracking", "fragment": "tracking shot, camera following the subject" },
+        { "key": "handheld", "label_zh": "手持", "label_en": "Handheld", "fragment": "handheld camera, subtle natural shake" },
+        { "key": "crane", "label_zh": "升降", "label_en": "Crane", "fragment": "crane shot, sweeping vertical movement" },
+        { "key": "orbit", "label_zh": "环绕", "label_en": "Orbit", "fragment": "orbit shot, camera circling the subject" },
+        { "key": "dolly_zoom", "label_zh": "滑动变焦", "label_en": "Dolly zoom", "fragment": "dolly zoom, vertigo effect" }
+      ]
+    },
+    {
+      "key": "aperture",
+      "label_zh": "光圈 / 景深",
+      "label_en": "Aperture / DoF",
+      "order": 50,
+      "options": [
+        { "key": "f1_4", "label_zh": "f/1.4 极浅景深", "label_en": "f/1.4 razor-thin", "fragment": "f/1.4 aperture, razor-thin depth of field, creamy bokeh" },
+        { "key": "f2_8", "label_zh": "f/2.8 浅景深", "label_en": "f/2.8 shallow", "fragment": "f/2.8 aperture, shallow depth of field, soft bokeh" },
+        { "key": "f5_6", "label_zh": "f/5.6 中等景深", "label_en": "f/5.6 moderate", "fragment": "f/5.6 aperture, moderate depth of field" },
+        { "key": "f11", "label_zh": "f/11 深焦", "label_en": "f/11 deep focus", "fragment": "f/11 aperture, deep focus, everything in sharp detail" }
+      ]
+    },
+    {
+      "key": "light_position",
+      "label_zh": "光位",
+      "label_en": "Light position",
+      "order": 60,
+      "options": [
+        { "key": "front", "label_zh": "顺光", "label_en": "Front", "fragment": "front lighting, even frontal illumination" },
+        { "key": "side", "label_zh": "侧光", "label_en": "Side", "fragment": "side lighting, sculpted shadows" },
+        { "key": "back", "label_zh": "逆光", "label_en": "Back", "fragment": "backlighting, rim-lit edges" },
+        { "key": "top", "label_zh": "顶光", "label_en": "Top", "fragment": "top lighting from above" },
+        { "key": "bottom", "label_zh": "底光", "label_en": "Bottom", "fragment": "underlighting from below" }
+      ]
+    },
+    {
+      "key": "light_quality",
+      "label_zh": "光质",
+      "label_en": "Light quality",
+      "order": 63,
+      "options": [
+        { "key": "soft", "label_zh": "柔光", "label_en": "Soft", "fragment": "soft diffused light, gentle gradients" },
+        { "key": "hard", "label_zh": "硬光", "label_en": "Hard", "fragment": "hard light, crisp defined shadows" }
+      ]
+    },
+    {
+      "key": "light_mood",
+      "label_zh": "影调",
+      "label_en": "Light mood",
+      "order": 66,
+      "options": [
+        { "key": "natural", "label_zh": "自然光", "label_en": "Natural", "fragment": "natural lighting" },
+        { "key": "low_key", "label_zh": "低调", "label_en": "Low key", "fragment": "low-key lighting, deep shadows, moody" },
+        { "key": "high_key", "label_zh": "高调", "label_en": "High key", "fragment": "high-key bright even lighting" },
+        { "key": "rembrandt", "label_zh": "伦勃朗光", "label_en": "Rembrandt", "fragment": "rembrandt lighting" },
+        { "key": "neon", "label_zh": "霓虹", "label_en": "Neon", "fragment": "neon glow, colorful reflections" },
+        { "key": "candle", "label_zh": "烛光", "label_en": "Candlelight", "fragment": "warm flickering candlelight" },
+        { "key": "window", "label_zh": "窗光", "label_en": "Window light", "fragment": "natural window light" }
+      ]
+    },
+    {
+      "key": "time_ambience",
+      "label_zh": "时间氛围",
+      "label_en": "Time of day",
+      "order": 70,
+      "options": [
+        { "key": "dawn", "label_zh": "黎明", "label_en": "Dawn", "fragment": "at dawn, pale cold light" },
+        { "key": "morning", "label_zh": "清晨", "label_en": "Morning", "fragment": "bright morning light" },
+        { "key": "noon", "label_zh": "正午", "label_en": "Noon", "fragment": "harsh midday sun" },
+        { "key": "golden", "label_zh": "黄金时刻", "label_en": "Golden hour", "fragment": "golden hour, warm low sunset light" },
+        { "key": "blue", "label_zh": "蓝调时刻", "label_en": "Blue hour", "fragment": "blue hour, twilight glow" },
+        { "key": "night", "label_zh": "夜晚", "label_en": "Night", "fragment": "night scene, ambient city glow" },
+        { "key": "midnight", "label_zh": "深夜月光", "label_en": "Moonlit night", "fragment": "deep night, moonlight only" }
+      ]
+    },
+    {
+      "key": "weather",
+      "label_zh": "天气",
+      "label_en": "Weather",
+      "order": 80,
+      "options": [
+        { "key": "clear", "label_zh": "晴", "label_en": "Clear", "fragment": "clear sky" },
+        { "key": "overcast", "label_zh": "阴", "label_en": "Overcast", "fragment": "overcast diffuse sky" },
+        { "key": "rain", "label_zh": "大雨", "label_en": "Heavy rain", "fragment": "heavy rain, wet reflective surfaces" },
+        { "key": "drizzle", "label_zh": "细雨", "label_en": "Drizzle", "fragment": "light drizzle" },
+        { "key": "snow", "label_zh": "雪", "label_en": "Snow", "fragment": "falling snow" },
+        { "key": "fog", "label_zh": "雾", "label_en": "Fog", "fragment": "dense fog, atmospheric haze" },
+        { "key": "storm", "label_zh": "雷暴", "label_en": "Storm", "fragment": "storm clouds, distant lightning" },
+        { "key": "windy", "label_zh": "大风", "label_en": "Windy", "fragment": "strong wind, moving hair and fabric" }
+      ]
+    },
+    {
+      "key": "color_grade",
+      "label_zh": "色调",
+      "label_en": "Color grade",
+      "order": 90,
+      "options": [
+        { "key": "teal_orange", "label_zh": "青橙", "label_en": "Teal & orange", "fragment": "teal and orange color grade" },
+        { "key": "warm", "label_zh": "暖调", "label_en": "Warm", "fragment": "warm golden color grade" },
+        { "key": "cool", "label_zh": "冷调", "label_en": "Cool", "fragment": "cool blue color grade" },
+        { "key": "desaturated", "label_zh": "低饱和", "label_en": "Desaturated", "fragment": "desaturated muted color palette" },
+        { "key": "high_contrast", "label_zh": "电影感高对比", "label_en": "High contrast", "fragment": "cinematic high contrast color grade" },
+        { "key": "pastel", "label_zh": "粉彩", "label_en": "Pastel", "fragment": "soft pastel color palette" },
+        { "key": "bw", "label_zh": "黑白", "label_en": "Black & white", "fragment": "black and white, monochrome" },
+        { "key": "sepia", "label_zh": "复古棕褐", "label_en": "Sepia", "fragment": "sepia vintage tone" },
+        { "key": "film", "label_zh": "胶片模拟", "label_en": "Film emulation", "fragment": "kodak film emulation, subtle grain" },
+        { "key": "cyberpunk", "label_zh": "赛博霓虹", "label_en": "Cyberpunk neon", "fragment": "cyberpunk neon palette, magenta and cyan" }
+      ]
+    },
+    {
+      "key": "style_suffix",
+      "label_zh": "画质风格",
+      "label_en": "Visual style",
+      "order": 100,
+      "options": [
+        { "key": "cinematic", "label_zh": "电影胶片感", "label_en": "Cinematic film", "fragment": "cinematic film still, 35mm film grain, anamorphic" },
+        { "key": "clean", "label_zh": "干净数字电影", "label_en": "Clean digital", "fragment": "clean digital cinema look, 4k detail" },
+        { "key": "documentary", "label_zh": "纪实", "label_en": "Documentary", "fragment": "documentary realism" },
+        { "key": "dreamy", "label_zh": "梦幻柔焦", "label_en": "Dreamy", "fragment": "dreamy soft focus, gentle halation" }
+      ]
+    }
+  ]
+}

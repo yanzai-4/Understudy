@@ -1,0 +1,22 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+sqlalchemy>=2.0
+pydantic-settings>=2.4
+numpy
+opencv-python
+rtmlib>=0.0.13
+onnxruntime>=1.18
+imageio-ffmpeg>=0.5
+psutil>=5.9
+pywebview>=5.0
+# macOS: pywebview's native Cocoa / WKWebView backend needs pyobjc. These
+# markers are ignored by pip on Windows/Linux, so other platforms are untouched.
+pyobjc-core>=10 ; sys_platform == 'darwin'
+pyobjc-framework-Cocoa>=10 ; sys_platform == 'darwin'
+pyobjc-framework-Quartz>=10 ; sys_platform == 'darwin'
+pyobjc-framework-WebKit>=10 ; sys_platform == 'darwin'
+pyobjc-framework-Security>=10 ; sys_platform == 'darwin'
+requests>=2.32
+pytest>=8.0
+httpx>=0.27

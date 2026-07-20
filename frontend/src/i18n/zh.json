@@ -1,0 +1,336 @@
+{
+  "app": {
+    "name": "Understudy",
+    "tagline": "用拍摄稿，导演 AI 视频"
+  },
+  "nav": {
+    "films": "作品",
+    "settings": "设置"
+  },
+  "common": {
+    "create": "新建",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "rename": "重命名",
+    "search": "搜索",
+    "confirm": "确认",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "prev": "上一步",
+    "loading": "加载中…",
+    "empty": "暂无内容",
+    "error": "出错了",
+    "retry": "重试",
+    "copy": "复制",
+    "copied": "已复制",
+    "download": "下载",
+    "page": "第 {{page}} / {{total}} 页",
+    "comingSoon": "开发中…"
+  },
+  "films": {
+    "title": "作品",
+    "newFilm": "新建作品",
+    "editFilm": "编辑作品",
+    "empty": "还没有作品，点击「新建作品」开始",
+    "noResults": "没有匹配的作品",
+    "searchPlaceholder": "搜索作品…",
+    "nameLabel": "作品名称",
+    "namePlaceholder": "例如：夜色下的追逐",
+    "descLabel": "简介",
+    "descPlaceholder": "这部片子讲什么（可选）",
+    "sortUpdated": "最近更新",
+    "sortCreated": "创建时间",
+    "sortName": "名称",
+    "stats": "{{shots}} 镜头 · {{scenes}} 场 · {{exported}} 已导出",
+    "shotCount": "{{count}} 个镜头",
+    "sceneCount": "{{count}} 场",
+    "exportedCount": "{{count}} 已导出",
+    "deleteTitle": "删除作品",
+    "deleteMessage": "确定删除「{{name}}」吗？其中的 {{count}} 个镜头及所有提取数据将一并删除，此操作不可恢复。"
+  },
+  "shots": {
+    "newShot": "新建镜头",
+    "editShot": "编辑镜头",
+    "duplicate": "复制为新版本",
+    "empty": "还没有镜头，点击「新建镜头」开始",
+    "noResults": "没有匹配的镜头",
+    "searchPlaceholder": "搜索镜头名称/备注…",
+    "nameLabel": "镜头名称",
+    "namePlaceholder": "例如：巷口对峙",
+    "sceneLabel": "场景号（可选）",
+    "scenePlaceholder": "例如：3",
+    "tagsLabel": "标签",
+    "tagsPlaceholder": "回车添加标签，如：夜戏、动作",
+    "notesLabel": "备注",
+    "notesPlaceholder": "导演笔记 / 拍摄意图（可选）",
+    "allScenes": "全部场景",
+    "sceneN": "场景 {{n}}",
+    "unassignedScene": "未分场",
+    "allStatus": "全部状态",
+    "status": {
+      "draft": "草稿",
+      "extracted": "已提取",
+      "exported": "已导出"
+    },
+    "pick": "选用此版本",
+    "pickedOnly": "只看选用",
+    "view": {
+      "storyboard": "故事板",
+      "board": "白板"
+    },
+    "deleteTitle": "删除镜头",
+    "deleteMessage": "确定删除镜头「{{name}}」吗？其提取数据和导出包将一并删除，此操作不可恢复。"
+  },
+  "guide": {
+    "title": "工作流程",
+    "subtitle": "从粗拍素材到可控 AI 生成，只需五步",
+    "reopen": "查看工作流程",
+    "create": {
+      "title": "新建作品与镜头",
+      "desc": "一部作品装多个镜头，按场景号和版本管理"
+    },
+    "upload": {
+      "title": "上传拍摄素材",
+      "desc": "随手拍的粗糙视频即可，只取其中的动作与构图"
+    },
+    "extract": {
+      "title": "提取控制信号",
+      "desc": "自动提取人物骨架、深度图与边缘线稿"
+    },
+    "lens": {
+      "title": "焦点与摄影参数",
+      "desc": "点击画面设定焦点拉焦，下拉选择光圈、打光、色调"
+    },
+    "export": {
+      "title": "导出喂给 AI",
+      "desc": "打包 prompt + 控制信号，喂给 ComfyUI 或商业平台生成"
+    }
+  },
+  "board": {
+    "autoLayout": "自动整理",
+    "hint": "拖出边缘圆点连线 · 双击连线删除 · 双击卡片打开镜头",
+    "dragHint": "拖动卡片调整位置；拖进/拖出场景框会改变镜头的场景归属"
+  },
+  "wizard": {
+    "steps": {
+      "upload": "上传",
+      "extract": "提取",
+      "preview": "预览与标注",
+      "lens": "焦点与变焦",
+      "camera": "摄影参数",
+      "export": "导出"
+    }
+  },
+  "lens": {
+    "hintBar": "右侧顶部切换「焦点/变焦」模式：焦点模式下拖动滑块到目标帧、点击画面设定焦点；变焦模式下点击画面定中心并选焦段。设定的点会作为菱形标记显示在时间轴上，多个标记之间自动过渡（拉焦/变焦）。",
+    "mode": {
+      "focus": "焦点",
+      "zoom": "变焦"
+    },
+    "source": {
+      "original": "原片",
+      "live": "实时预览",
+      "rendered": "渲染序列"
+    },
+    "clickHintFocus": "点击画面 = 在当前帧设置焦点（按该处深度）",
+    "clickHintZoom": "点击画面 = 设置当前帧变焦中心",
+    "noDepth": "焦点控制需要 depth 通道，请先提取深度",
+    "focusTitle": "焦点（拉焦）",
+    "zoomTitle": "变焦 / 焦段",
+    "focalPlane": "焦平面",
+    "zoneNear": "近景",
+    "zoneMid": "中景",
+    "zoneFar": "远景",
+    "laneFocus": "焦点关键帧",
+    "laneZoom": "变焦关键帧",
+    "noFocusKfs": "拖动滑块到目标帧，点击画面中想聚焦的位置",
+    "noZoomKfs": "切到「变焦」模式，点击画面设定中心并选择焦段",
+    "labelPlaceholder": "对象英文名（写入 prompt）",
+    "maxBlur": "虚化强度",
+    "falloff": "过渡范围",
+    "easing": "过渡曲线",
+    "easeSmooth": "平滑",
+    "easeLinear": "线性",
+    "zoomHint": "变焦会在导出时同步缩放全部控制信号（pose/depth/canny），并写入 prompt。",
+    "staticFocal": "固定焦段",
+    "promptWillInclude": "将写入 Prompt 的镜头短语",
+    "noPhrases": "暂无（启用焦点或选择焦段后生成）",
+    "renderSequence": "渲染景深序列",
+    "skip": "跳过此步"
+  },
+  "extract": {
+    "channels": "控制信号通道",
+    "channel": {
+      "pose": "姿态 Pose",
+      "depth": "深度 Depth",
+      "canny": "边缘 Canny"
+    },
+    "unavailable": "暂不可用",
+    "stride": "采样间隔",
+    "strideAuto": "自动（每 {{n}} 帧取 1 帧）",
+    "strideN": "每 {{n}} 帧取 1 帧",
+    "maxSize": "处理分辨率（长边）",
+    "recommended": "（推荐）",
+    "willOutput": "预计输出 {{frames}} 帧",
+    "estimate": "预计耗时约 {{time}}",
+    "start": "开始提取",
+    "rerun": "重新提取",
+    "done": "提取完成，共 {{frames}} 帧",
+    "cancelled": "已取消，可重新开始",
+    "stageExtract": "提取中 {{detail}}",
+    "stage": {
+      "downloading_models": "下载模型中…",
+      "loading_models": "加载模型中…",
+      "finalizing": "整理输出…"
+    }
+  },
+  "export": {
+    "readyTitle": "提取已完成，可以导出",
+    "readyDetail": "已提取 {{channels}}，共 {{frames}} 帧。勾选内容后点击下方按钮打包。",
+    "contents": "导出内容",
+    "channelSeq": "{{ch}} PNG 序列",
+    "controlVideos": "控制信号 mp4 视频（便于上传网页版生成平台）",
+    "sourceVideo": "原始视频文件",
+    "masksAuto": "背景改动遮罩 + 描述（{{count}} 个标注，自动包含）",
+    "always": "prompt.txt / metadata.json / README 使用指南（始终包含）",
+    "start": "生成 Prompt 并导出",
+    "again": "再次导出",
+    "working": "打包中…",
+    "done": "导出完成",
+    "history": "导出历史"
+  },
+  "camera": {
+    "formTitle": "摄影参数",
+    "previewTitle": "Prompt 实时预览",
+    "unspecified": "— 不指定 —",
+    "presetChip": "预设",
+    "fromPreset": "该值继承自作品风格预设",
+    "subjectDesc": "主体描述",
+    "subjectPlaceholder": "例如：a young woman in a red trench coat",
+    "sceneDesc": "场景描述",
+    "scenePlaceholder": "例如：narrow neon-lit alley in a rainy city",
+    "customPositive": "追加正向词",
+    "customPositivePlaceholder": "追加到 prompt 末尾",
+    "customNegative": "追加负向词",
+    "customNegativePlaceholder": "追加到负向 prompt 末尾",
+    "positive": "正向 Prompt",
+    "negative": "负向 Prompt",
+    "emptyPrompt": "选择参数或填写描述后，prompt 将在此实时生成",
+    "bgEdits": "背景改动（随遮罩导出）",
+    "bgEditsHint": "以下描述不并入主 prompt——导出包中每个区域附带独立遮罩和描述，供支持遮罩重绘的工具（如 VACE）使用。",
+    "save": {
+      "saved": "已保存",
+      "saving": "保存中…",
+      "dirty": "编辑中…"
+    }
+  },
+  "provider": {
+    "confirmTitle": "切换推理后端",
+    "confirmBody": "将切换到 {{target}}，这会重装 onnxruntime 依赖并自动重启应用（约 1 分钟）。窗口会先关闭，完成后自动重新打开。确定继续吗？",
+    "confirmBtn": "切换并重启",
+    "restartingTitle": "正在切换并重启…",
+    "restartingBody": "应用窗口即将关闭，正在重装依赖，完成后会自动重新打开（约 1 分钟）。请勿手动关闭后台进程。"
+  },
+  "reset": {
+    "title": "重置平台",
+    "hint": "清空全部作品、镜头、控制信号与导出记录，并重新生成内置样板作品（可随时删除）。此操作不可恢复。",
+    "button": "重置全部内容",
+    "warning": "所有作品、镜头、已提取的控制信号、背景标注与导出记录都将被永久删除，随后会重新生成内置样板作品。此操作无法撤销。",
+    "typePrompt": "如需继续，请输入",
+    "confirmBtn": "永久重置",
+    "working": "正在重置…"
+  },
+  "preset": {
+    "button": "风格预设",
+    "title": "作品风格预设",
+    "hint": "为整部作品设定默认摄影参数（如统一色调与画质风格）。之后新建的镜头会自动继承这些值作为初始参数，保证全片风格统一；已有镜头不受影响。",
+    "perFilm": "此预设仅作用于当前作品，每个作品的风格预设相互独立、互不影响。"
+  },
+  "bgEdit": {
+    "annotate": "标注背景改动",
+    "annotatingOn": "标注中 · 在画面上拖拽画框",
+    "hint": "在画面上拖拽绘制矩形框，标记要移除/新增/替换的背景区域。框会导出为遮罩供 AI 重绘。",
+    "empty": "暂无背景标注",
+    "newTitle": "新建背景改动",
+    "editTitle": "编辑背景改动",
+    "labelLabel": "名称",
+    "labelPlaceholder": "例如：移除右侧建筑",
+    "typeLabel": "改动类型",
+    "type": {
+      "remove": "移除",
+      "add": "新增",
+      "replace": "替换"
+    },
+    "descLabel": "改动描述（将写入 prompt）",
+    "descPlaceholder": "例如：replace with a dense forest",
+    "deleteTitle": "删除背景标注",
+    "deleteMessage": "确定删除标注「{{name}}」及其遮罩文件吗？"
+  },
+  "preview": {
+    "hintBar": "拖动帧滑块查看各帧；点右侧「标注背景改动」后，在画面上按住拖拽画出矩形框，标记要移除/新增/替换的区域，拖动边角可调整。",
+    "mode": {
+      "overlay": "叠加视图",
+      "split": "分离视图"
+    },
+    "source": "原始画面",
+    "depthOpacity": "深度透明度",
+    "framesAt": "帧 @ {{fps}}fps"
+  },
+  "upload": {
+    "dropHint": "拖拽视频到此处，或点击选择文件",
+    "replaceHint": "拖拽或点击可重新上传",
+    "replaceWarning": "重新上传会替换当前视频，并清空已提取的控制信号、背景标注与导出记录，向导也将回到第一步。",
+    "replaceTitle": "重新上传视频",
+    "replaceConfirm": "确定要替换当前视频吗？已提取的 pose / depth / canny、背景标注和导出记录都会被清除，此操作不可恢复。",
+    "replaceConfirmBtn": "替换并清空",
+    "formats": "支持 MP4 / MOV / AVI / MKV / WebM，最大 2GB",
+    "uploading": "上传中 {{pct}}%",
+    "resolution": "分辨率",
+    "fps": "帧率",
+    "frames": "总帧数",
+    "duration": "时长"
+  },
+  "settings": {
+    "title": "设置",
+    "language": "界面语言",
+    "provider": "推理后端",
+    "providerHint": "CPU 适用于所有机器；GPU 后端可加速深度估计（Windows 用 DirectML，Mac 用 CoreML）",
+    "providerAutoNote": "切换会自动重装依赖并重启应用，无需手动操作。",
+    "providerInstantNote": "切换即时生效，将在下次提取时启用（无需重装或重启）。",
+    "reinstallGuide": "自动切换不可用（可能未打包 exe）。请关闭平台后，在项目目录用 PowerShell 运行以下脚本，再重新启动：",
+    "extraction": "提取默认参数",
+    "defaultMaxSize": "默认处理分辨率（长边）",
+    "recommendedForDevice": "（推荐，基于当前设备）",
+    "depthVariant": "深度模型精度",
+    "depthFast": "更快",
+    "depthAccurate": "更准",
+    "cannyLow": "Canny 低阈值",
+    "cannyHigh": "Canny 高阈值",
+    "models": "模型状态",
+    "modelsHint": "模型在安装时自动下载，缺失时首次提取会自动补齐，无需手动操作。",
+    "modelAuto": "将自动下载",
+    "redetect": "重新检测"
+  },
+  "firstRun": {
+    "title": "欢迎使用 Understudy",
+    "subtitle": "确认硬件与提取偏好，只需一次",
+    "hardware": "硬件检测",
+    "cores": "核心",
+    "provider": "推理后端",
+    "recommendedSize": "推荐处理分辨率",
+    "tierCpu": "未检测到可用 GPU，将使用 CPU 推理。这只影响默认处理分辨率（{{size}}px）与提取速度，不影响任何功能。",
+    "tierLow": "内存不足 16GB 且未检测到可用 GPU，已采用低配档。这只影响默认处理分辨率（{{size}}px）与提取速度，不影响任何功能。",
+    "models": "提取模型",
+    "depthTitle": "深度模型 Depth Anything V2 Small",
+    "depth_int8": "int8",
+    "depth_fp32": "fp32",
+    "depthHint_int8": "更快、更小，推荐 CPU 使用",
+    "depthHint_fp32": "更准、更细腻，推理较慢",
+    "autoDownload": "所需模型已在安装时自动下载；若缺失，首次提取会自动补齐。",
+    "ready": "已就绪",
+    "start": "开始使用"
+  }
+}
