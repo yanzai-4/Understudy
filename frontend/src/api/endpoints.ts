@@ -199,7 +199,13 @@ export interface ExportRecordOut {
 
 export const startExport = (
   shotId: string,
-  include: { source: boolean; channels: string[] | null; masks: boolean; control_videos: boolean },
+  include: {
+    source: boolean
+    channels: string[] | null
+    masks: boolean
+    control_videos: boolean
+    scope?: Record<string, 'whole' | 'subject'>
+  },
 ) => api.post<{ task_id: string }>(`/api/shots/${shotId}/export`, { include })
 
 export const listExports = (shotId: string) =>

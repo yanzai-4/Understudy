@@ -146,6 +146,9 @@
     "zoneFar": "far",
     "laneFocus": "Focus keyframes",
     "laneZoom": "Zoom keyframes",
+    "followSubject": "Focus follows subject",
+    "followSubjectHint": "The focal plane auto-tracks the person each frame (median depth inside the matte), so focus follows them as they move nearer/farther. Needs the Subject channel.",
+    "followSubjectNeed": "Extract the Subject channel first to enable this.",
     "noFocusKfs": "Scrub to a frame, then click where you want the focus",
     "noZoomKfs": "Switch to Zoom mode, click to set the center and pick a focal length",
     "labelPlaceholder": "Subject name (goes into the prompt)",
@@ -166,7 +169,8 @@
     "channel": {
       "pose": "Pose",
       "depth": "Depth",
-      "canny": "Canny"
+      "canny": "Canny",
+      "subject": "Subject"
     },
     "unavailable": "unavailable",
     "stride": "Frame sampling",
@@ -192,6 +196,10 @@
     "readyDetail": "Extracted {{channels}}, {{frames}} frames. Pick what to include, then package below.",
     "contents": "Package contents",
     "channelSeq": "{{ch}} PNG sequence",
+    "scope": {
+      "whole": "Full frame",
+      "subject": "Subject"
+    },
     "controlVideos": "Control-signal mp4 videos (for web-based platforms)",
     "sourceVideo": "Original source video",
     "masksAuto": "Background edit masks + descriptions ({{count}} annotations, automatic)",

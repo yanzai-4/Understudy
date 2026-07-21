@@ -1,0 +1,64 @@
+Understudy
+Copyright 2026 Ryan Yan (yanzai-4)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+It includes and builds upon third-party software and models, each under its own
+license, as listed below.
+
+================================================================================
+Models
+================================================================================
+
+Depth Anything V2 (Small) — relative depth estimation
+    ONNX weights: onnx-community/depth-anything-v2-small (Hugging Face)
+    License: Apache-2.0
+    Downloaded at install/first-run into models/ (not redistributed here).
+
+RTMPose / RTMDet, via rtmlib — body detection + pose estimation
+    https://github.com/Tau-J/rtmlib  (models from the MMPose project)
+    License: Apache-2.0
+    Pose weights are fetched into the rtmlib cache on first use.
+
+================================================================================
+Libraries
+================================================================================
+
+Backend
+    FastAPI, Starlette, Pydantic ......... MIT
+    Uvicorn .............................. BSD-3-Clause
+    SQLAlchemy ........................... MIT
+    ONNX Runtime ......................... MIT
+    OpenCV (opencv-python) ............... Apache-2.0
+    NumPy ................................ BSD-3-Clause
+    imageio-ffmpeg (bundles FFmpeg) ...... imageio-ffmpeg: BSD-2-Clause;
+                                           FFmpeg binary: LGPL-2.1-or-later
+    psutil ............................... BSD-3-Clause
+    requests ............................. Apache-2.0
+    pywebview ............................ BSD-3-Clause
+    pyobjc (macOS only) .................. MIT
+
+Frontend
+    React, React DOM ..................... MIT
+    Vite ................................. MIT
+    TypeScript ........................... Apache-2.0
+    Tailwind CSS ......................... MIT
+    @xyflow/react (React Flow) ........... MIT
+    zustand, react-router, react-i18next . MIT
+
+Each library remains under its own license; this list is a convenience summary,
+not a substitute for those licenses.
+
+================================================================================
+Demo footage
+================================================================================
+
+The bundled demo projects (backend/app/assets/demos/) ship only DERIVED control
+signals — extracted frames, pose, depth and canny sequences plus thumbnails.
+The original source videos are NOT redistributed with this project.
+
+Those signals were derived from short, publicly available sample clips:
+    - Pexels (pexels.com) — free-to-use stock footage (street / crossing scenes)
+    - OpenCV / Intel sample media — bundled test clips (courtyard / corridor scenes)
+
+Demo content is provided solely to illustrate the pipeline and can be deleted at
+any time (it is only recreated on an explicit reset or a first launch).

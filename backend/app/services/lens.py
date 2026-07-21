@@ -29,7 +29,14 @@ log = logging.getLogger(__name__)
 BLUR_LEVELS = 5
 
 DEFAULT_LENS: dict = {
-    "focus": {"enabled": False, "max_blur": 12, "falloff": 0.35, "easing": "smooth", "keyframes": []},
+    "focus": {
+        "enabled": False,
+        "max_blur": 12,
+        "falloff": 0.35,
+        "easing": "smooth",
+        "follow_subject": False,  # focal plane auto-tracks the person matte
+        "keyframes": [],
+    },
     "zoom": {"enabled": False, "keyframes": []},
     "focal": None,
 }
@@ -45,11 +52,15 @@ def normalize_lens(data: dict | None) -> dict:
     return {"focus": focus, "zoom": zoom, "focal": data.get("focal")}
 
 
+def focus_is_active(focus: dict) -> bool:
+    """Focus produces output if it has keyframes or is set to follow the subject."""
+    return bool(focus["enabled"] and (focus["keyframes"] or focus.get("follow_subject")))
+
+
 def lens_is_active(data: dict) -> bool:
     lens = normalize_lens(data)
-    focus_on = lens["focus"]["enabled"] and len(lens["focus"]["keyframes"]) > 0
     zoom_on = lens["zoom"]["enabled"] and len(lens["zoom"]["keyframes"]) > 0
-    return focus_on or zoom_on or bool(lens["focal"])
+    return focus_is_active(lens["focus"]) or zoom_on or bool(lens["focal"])
 
 
 # ---------- keyframe interpolation ----------
@@ -86,6 +97,35 @@ def focal_plane_at(lens: dict, frame: int) -> float | None:
     if not focus["enabled"] or not focus["keyframes"]:
         return None
     return interp_keyframes(focus["keyframes"], frame, "depth", focus.get("easing", "smooth"))
+
+
+def subject_focal_plane(shot_dir: Path, frame_index: int, thresh: float = 0.5) -> float | None:
+    """Median depth (0..1) inside the subject matte at this frame — the person's
+    distance, so focus can auto-track them. None if the matte/depth is missing
+    or the person is absent from the frame."""
+    subj = shot_dir / "subject" / f"frame_{frame_index:06d}.png"
+    depth_path = shot_dir / "depth" / f"frame_{frame_index:06d}.png"
+    if not subj.exists() or not depth_path.exists():
+        return None
+    mask = cv2.imdecode(np.fromfile(subj, np.uint8), cv2.IMREAD_GRAYSCALE)
+    depth = cv2.imdecode(np.fromfile(depth_path, np.uint8), cv2.IMREAD_GRAYSCALE)
+    if mask.shape[:2] != depth.shape[:2]:
+        mask = cv2.resize(mask, (depth.shape[1], depth.shape[0]), interpolation=cv2.INTER_LINEAR)
+    sel = mask > int(thresh * 255)
+    if int(sel.sum()) < 20:  # no meaningful subject in this frame
+        return None
+    return float(np.median(depth[sel])) / 255.0
+
+
+def resolve_focal_plane(lens: dict, shot_dir: Path, frame_index: int) -> float | None:
+    """Focal plane for a frame: the subject's depth when following the subject
+    (falling back to keyframes if the person is absent), else keyframe-based."""
+    focus = lens["focus"]
+    if focus.get("enabled") and focus.get("follow_subject"):
+        d = subject_focal_plane(shot_dir, frame_index)
+        if d is not None:
+            return d
+    return focal_plane_at(lens, frame_index)
 
 
 def render_dof(
@@ -196,7 +236,9 @@ def lens_phrases(data: dict, mappings: dict, camera_move_set: bool) -> list[str]
     phrases: list[str] = []
 
     focus = lens["focus"]
-    if focus["enabled"] and focus["keyframes"]:
+    if focus["enabled"] and focus.get("follow_subject"):
+        phrases.append("focus following the subject, shallow depth of field")
+    elif focus["enabled"] and focus["keyframes"]:
         kfs = focus["keyframes"]
         if len(kfs) == 1:
             phrases.append(f"sharp focus on {_depth_label(kfs[0])}")
@@ -239,8 +281,8 @@ def run_lens_render(task_id: str, shot_id: str) -> None:
             raise RuntimeError("Shot no longer exists")
         state = db.get(LensState, shot_id)
         lens = normalize_lens(state.data if state else None)
-        if not (lens["focus"]["enabled"] and lens["focus"]["keyframes"]):
-            raise RuntimeError("No focus keyframes to render")
+        if not focus_is_active(lens["focus"]):
+            raise RuntimeError("Focus is off — add keyframes or enable follow-subject")
 
         shot_dir = paths.shot_dir(shot.film_id, shot.id)
         frames = sorted((shot_dir / "frames").glob("frame_*.jpg"))
@@ -267,7 +309,7 @@ def run_lens_render(task_id: str, shot_id: str) -> None:
                 raise RuntimeError("Depth channel missing — extract depth first")
             depth = cv2.imdecode(np.fromfile(depth_path, np.uint8), cv2.IMREAD_GRAYSCALE)
 
-            d0 = focal_plane_at(lens, i)
+            d0 = resolve_focal_plane(lens, shot_dir, i)
             zoom = zoom_params_at(lens, i)
             dof, fmap = render_dof(frame, depth, d0 if d0 is not None else 0.5, max_blur, falloff)
             if zoom:
@@ -300,7 +342,7 @@ def render_single_frame(shot_dir: Path, lens: dict, frame_index: int) -> np.ndar
     frame = cv2.imdecode(np.fromfile(frame_path, np.uint8), cv2.IMREAD_COLOR)
 
     lens = normalize_lens(lens)
-    d0 = focal_plane_at(lens, frame_index)
+    d0 = resolve_focal_plane(lens, shot_dir, frame_index)
     if d0 is not None:
         depth_path = shot_dir / "depth" / f"frame_{frame_index:06d}.png"
         if depth_path.exists():

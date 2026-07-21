@@ -11,7 +11,8 @@
   "channels": [
     "pose",
     "depth",
-    "canny"
+    "canny",
+    "subject"
   ],
   "index_map": [
     {

@@ -67,6 +67,7 @@ export default function StepLens({ shot, onNext }: Props) {
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const hasDepth = meta?.channels.includes('depth') ?? false
+  const hasSubject = meta?.channels.includes('subject') ?? false
 
   const [cameraMoveSet, setCameraMoveSet] = useState(false)
 
@@ -92,7 +93,7 @@ export default function StepLens({ shot, onNext }: Props) {
 
   const lensActive =
     lens != null &&
-    ((lens.focus.enabled && lens.focus.keyframes.length > 0) ||
+    ((lens.focus.enabled && (lens.focus.keyframes.length > 0 || lens.focus.follow_subject)) ||
       (lens.zoom.enabled && lens.zoom.keyframes.length > 0))
 
   // Live single-frame preview (debounced against scrubbing / param edits).
@@ -289,6 +290,29 @@ export default function StepLens({ shot, onNext }: Props) {
               />
             </label>
             {!hasDepth && <p className="mt-1 text-[10px] text-amber-400">{t('lens.noDepth')}</p>}
+            {/* Follow subject: focal plane auto-tracks the person matte */}
+            <label
+              className={`mt-2 flex items-center justify-between rounded-md border px-2 py-1.5 ${
+                hasSubject ? 'cursor-pointer border-night-700' : 'border-night-800 opacity-50'
+              }`}
+            >
+              <span className="text-[11px] text-slate-300">{t('lens.followSubject')}</span>
+              <input
+                type="checkbox"
+                disabled={!hasSubject || !hasDepth}
+                checked={lens.focus.follow_subject}
+                onChange={(e) =>
+                  save({
+                    ...lens,
+                    focus: { ...lens.focus, enabled: true, follow_subject: e.target.checked },
+                  })
+                }
+                className="accent-cyan-400"
+              />
+            </label>
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-600">
+              {hasSubject ? t('lens.followSubjectHint') : t('lens.followSubjectNeed')}
+            </p>
             <div className="mt-2 flex flex-col gap-1.5">
               {lens.focus.keyframes.length === 0 && (
                 <p className="text-[11px] text-slate-600">{t('lens.noFocusKfs')}</p>
@@ -486,7 +510,11 @@ export default function StepLens({ shot, onNext }: Props) {
         ) : (
           <Button
             variant="ghost"
-            disabled={!lens.focus.enabled || lens.focus.keyframes.length === 0 || !hasDepth}
+            disabled={
+              !hasDepth ||
+              !lens.focus.enabled ||
+              (lens.focus.keyframes.length === 0 && !(lens.focus.follow_subject && hasSubject))
+            }
             onClick={async () => {
               setError('')
               try {

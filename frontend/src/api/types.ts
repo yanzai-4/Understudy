@@ -137,6 +137,7 @@ export interface LensData {
     max_blur: number
     falloff: number
     easing: 'linear' | 'smooth'
+    follow_subject: boolean
     keyframes: FocusKeyframe[]
   }
   zoom: {

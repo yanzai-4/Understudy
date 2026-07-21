@@ -146,6 +146,9 @@
     "zoneFar": "远景",
     "laneFocus": "焦点关键帧",
     "laneZoom": "变焦关键帧",
+    "followSubject": "焦点跟随人物",
+    "followSubjectHint": "开启后焦平面每帧自动取人物遮罩内的深度中位数，随人物远近自动跟焦（需已提取人物通道）。",
+    "followSubjectNeed": "需在提取步骤勾选「人物 Subject」通道后可用。",
     "noFocusKfs": "拖动滑块到目标帧，点击画面中想聚焦的位置",
     "noZoomKfs": "切到「变焦」模式，点击画面设定中心并选择焦段",
     "labelPlaceholder": "对象英文名（写入 prompt）",
@@ -166,7 +169,8 @@
     "channel": {
       "pose": "姿态 Pose",
       "depth": "深度 Depth",
-      "canny": "边缘 Canny"
+      "canny": "边缘 Canny",
+      "subject": "人物 Subject"
     },
     "unavailable": "暂不可用",
     "stride": "采样间隔",
@@ -192,6 +196,10 @@
     "readyDetail": "已提取 {{channels}}，共 {{frames}} 帧。勾选内容后点击下方按钮打包。",
     "contents": "导出内容",
     "channelSeq": "{{ch}} PNG 序列",
+    "scope": {
+      "whole": "全画幅",
+      "subject": "只人物"
+    },
     "controlVideos": "控制信号 mp4 视频（便于上传网页版生成平台）",
     "sourceVideo": "原始视频文件",
     "masksAuto": "背景改动遮罩 + 描述（{{count}} 个标注，自动包含）",

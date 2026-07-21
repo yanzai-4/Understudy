@@ -20,6 +20,7 @@ class ExportInclude(BaseModel):
     channels: list[str] | None = None  # None = all extracted
     masks: bool = True
     control_videos: bool = True
+    scope: dict[str, str] = {}  # per-channel: "whole" | "subject" (canny/depth)
 
 
 class ExportRequest(BaseModel):

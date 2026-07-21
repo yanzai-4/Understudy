@@ -22,7 +22,9 @@ export function lensPhrases(
   const phrases: string[] = []
 
   const focusKfs = lens.focus.enabled ? [...lens.focus.keyframes].sort((a, b) => a.frame - b.frame) : []
-  if (focusKfs.length === 1) {
+  if (lens.focus.enabled && lens.focus.follow_subject) {
+    phrases.push('focus following the subject, shallow depth of field')
+  } else if (focusKfs.length === 1) {
     phrases.push(`sharp focus on ${depthLabel(focusKfs[0])}`)
   } else if (focusKfs.length >= 2) {
     phrases.push(`rack focus from ${depthLabel(focusKfs[0])} to ${depthLabel(focusKfs[focusKfs.length - 1])}`)

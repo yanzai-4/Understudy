@@ -27,6 +27,7 @@ export default function StepExport({ shot, onShotUpdated }: Props) {
   const [includeSource, setIncludeSource] = useState(false)
   const [includeVideos, setIncludeVideos] = useState(true)
   const [channels, setChannels] = useState<string[]>([])
+  const [scope, setScope] = useState<Record<string, 'whole' | 'subject'>>({})
   const [taskId, setTaskId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [lastExportId, setLastExportId] = useState<number | null>(null)
@@ -36,6 +37,8 @@ export default function StepExport({ shot, onShotUpdated }: Props) {
       .then((m) => {
         setMeta(m)
         setChannels(m.channels)
+        // default canny to subject-only when a person matte is available
+        if (m.channels.includes('subject')) setScope({ canny: 'subject' })
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
     listBackgroundEdits(shot.id).then(setEdits).catch(console.error)
@@ -60,6 +63,7 @@ export default function StepExport({ shot, onShotUpdated }: Props) {
         channels,
         masks: true,
         control_videos: includeVideos,
+        scope,
       })
       setTaskId(task_id)
     } catch (e) {
@@ -104,20 +108,42 @@ export default function StepExport({ shot, onShotUpdated }: Props) {
           <div className="flex flex-col gap-2.5 text-sm text-slate-300">
             {meta.channels.map((ch) => {
               const on = channels.includes(ch)
+              const showScope =
+                on && channels.includes('subject') && (ch === 'canny' || ch === 'depth')
               return (
-                <label key={ch} className="flex cursor-pointer items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={on}
-                    disabled={running}
-                    onChange={() =>
-                      setChannels((cur) => (on ? cur.filter((c) => c !== ch) : [...cur, ch]))
-                    }
-                  />
-                  <span className={checkbox(on)}>{on && '✓'}</span>
-                  {t('export.channelSeq', { ch: t(`extract.channel.${ch}`) })}
-                </label>
+                <div key={ch} className="flex items-center gap-2.5">
+                  <label className="flex cursor-pointer items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={on}
+                      disabled={running}
+                      onChange={() =>
+                        setChannels((cur) => (on ? cur.filter((c) => c !== ch) : [...cur, ch]))
+                      }
+                    />
+                    <span className={checkbox(on)}>{on && '✓'}</span>
+                    {t('export.channelSeq', { ch: t(`extract.channel.${ch}`) })}
+                  </label>
+                  {showScope && (
+                    <div className="ml-auto flex rounded-md border border-night-600 p-0.5 text-[10px]">
+                      {(['whole', 'subject'] as const).map((s) => (
+                        <button
+                          key={s}
+                          disabled={running}
+                          onClick={() => setScope((cur) => ({ ...cur, [ch]: s }))}
+                          className={`rounded px-2 py-0.5 transition ${
+                            (scope[ch] ?? 'whole') === s
+                              ? 'bg-night-700 text-cyan-300'
+                              : 'text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          {t(`export.scope.${s}`)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )
             })}
             <label className="flex cursor-pointer items-center gap-2.5">

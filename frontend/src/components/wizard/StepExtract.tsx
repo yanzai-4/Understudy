@@ -4,7 +4,6 @@ import type { Shot } from '../../api/types'
 import {
   cancelTask,
   getHardware,
-  getSettings,
   getShot,
   listExtractors,
   startExtraction,
@@ -13,7 +12,7 @@ import { useTaskPolling } from '../../hooks/useTaskPolling'
 import { formatEstimate } from '../../lib/format'
 import Button from '../common/Button'
 
-const CHANNEL_ORDER = ['pose', 'depth', 'canny']
+const CHANNEL_ORDER = ['pose', 'depth', 'canny', 'subject']
 
 interface Props {
   shot: Shot
@@ -39,12 +38,12 @@ export default function StepExtract({ shot, onShotUpdated, onNext }: Props) {
         setChannels(names)
       })
       .catch(console.error)
-    // default from settings; recommendation marker from the hardware tier
-    getSettings()
-      .then((s) => setMaxSize(s.default_max_size))
-      .catch(console.error)
+    // processing resolution auto-defaults to the hardware-recommended value
     getHardware()
-      .then((h) => setRecommendedSize(h.recommended.default_max_size))
+      .then((h) => {
+        setRecommendedSize(h.recommended.default_max_size)
+        setMaxSize(h.recommended.default_max_size)
+      })
       .catch(console.error)
   }, [])
 
@@ -75,7 +74,7 @@ export default function StepExtract({ shot, onShotUpdated, onNext }: Props) {
     strideMode === 'auto' ? Math.max(1, Math.ceil(frameCount / 300)) : strideMode
   const outFrames = Math.ceil(frameCount / Math.max(1, effectiveStride))
   // Measured CPU throughput on a 14-core laptop: ~4 s/frame with pose+depth.
-  const heavy = channels.includes('pose') || channels.includes('depth')
+  const heavy = ['pose', 'depth', 'subject'].some((c) => channels.includes(c))
   const estimate = heavy ? Math.round(outFrames * 4) : Math.round(outFrames * 0.05)
 
   const alreadyExtracted = shot.status === 'extracted' || shot.status === 'exported'

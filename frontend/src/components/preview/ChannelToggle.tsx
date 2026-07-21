@@ -4,6 +4,7 @@ const CHANNEL_COLORS: Record<string, string> = {
   pose: 'border-fuchsia-500/60 bg-fuchsia-950/40 text-fuchsia-300',
   depth: 'border-sky-500/60 bg-sky-950/40 text-sky-300',
   canny: 'border-lime-500/60 bg-lime-950/40 text-lime-300',
+  subject: 'border-amber-500/60 bg-amber-950/40 text-amber-300',
 }
 
 interface Props {
