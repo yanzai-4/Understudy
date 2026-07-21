@@ -19,7 +19,7 @@ HTML = (ROOT / "docs" / "hero.html").as_uri()
 OUT = ROOT / "docs" / "hero.png"
 CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 PORT = 9911
-W, H, SCALE = 1200, 470, 2
+W, H, SCALE = 1200, 320, 2
 
 
 async def cdp(ws, method, params=None, _id=[0]):
@@ -56,6 +56,8 @@ async def main():
             await asyncio.sleep(1.5)
             shot = await cdp(ws, "Page.captureScreenshot", {
                 "format": "png",
+                # capture the full clip even where it exceeds the (chrome-shrunk) viewport
+                "captureBeyondViewport": True,
                 "clip": {"x": 0, "y": 0, "width": W, "height": H, "scale": SCALE},
             })
             OUT.write_bytes(base64.b64decode(shot["data"]))
