@@ -132,7 +132,7 @@ def main() -> None:
     icon = BACKEND_DIR.parent / "scripts" / "launcher" / "understudy.ico"
 
     # Center the window on the primary screen.
-    win_w, win_h = 1360, 860
+    win_w, win_h = 1360, 960
     win_x = win_y = None
     try:
         screen = webview.screens[0]
@@ -149,7 +149,7 @@ def main() -> None:
         height=win_h,
         x=win_x,
         y=win_y,
-        min_size=(960, 640),
+        min_size=(960, 700),
     )
 
     def boot(win) -> None:

@@ -10,6 +10,7 @@
   "common": {
     "create": "新建",
     "save": "保存",
+    "add": "添加",
     "cancel": "取消",
     "delete": "删除",
     "edit": "编辑",
@@ -125,7 +126,7 @@
     }
   },
   "lens": {
-    "hintBar": "在时间轴的焦点/变焦轨道上拖出一个「段」：段内保持一个焦平面/焦段，段之间的空档自动过渡（拉焦/变焦）。拖动段的左右边可改开始/结束；两段相接时中间的菱形是「交汇点」，拖它同时移动两段。选中某段后点击画面即可设定它的焦平面或变焦中心。",
+    "hintBar": "在焦点/变焦轨道上拖出一个「段」：段内焦平面/焦段保持不变，段与段之间自动过渡（拉焦/变焦）。拖段的左右边改起止；两段相接处的菱形是「交汇点」，拖它可同时移动两段。选中某段后点击画面即可设定其焦平面或变焦中心。",
     "source": {
       "original": "原片",
       "live": "实时预览",
@@ -145,6 +146,7 @@
     "laneFocus": "焦点",
     "laneZoom": "变焦",
     "addSegment": "段",
+    "junction": "交汇点 · 拖动可同时移动两段",
     "trackHint": "在空白处点一下或拖出新段 · 拖边改起止 · 拖菱形交汇点同时移动相邻两段 · 每条轨道最多 3 段",
     "play": "播放",
     "pause": "暂停",
@@ -153,7 +155,7 @@
     "followSubjectNeed": "需在提取步骤同时勾选「姿态 Pose」和「深度 Depth」通道后可用。",
     "noFocusSegs": "在下方焦点轨道空白处拖出一个段，或点「+ 段」",
     "noZoomSegs": "在下方变焦轨道空白处拖出一个段，或点「+ 段」",
-    "labelPlaceholder": "对象英文名（写入 prompt）",
+    "labelPlaceholder": "主体名称（英文，写入 prompt）",
     "maxBlur": "虚化强度",
     "falloff": "过渡范围",
     "easing": "过渡曲线",
@@ -199,7 +201,6 @@
     "channelSeq": "{{ch}} PNG 序列",
     "controlVideos": "控制信号 mp4 视频（便于上传网页版生成平台）",
     "sourceVideo": "原始视频文件",
-    "masksAuto": "背景改动遮罩 + 描述（{{count}} 个标注，自动包含）",
     "always": "prompt.txt / metadata.json / README 使用指南（始终包含）",
     "start": "生成 Prompt 并导出",
     "again": "再次导出",
@@ -213,6 +214,8 @@
     "unspecified": "— 不指定 —",
     "presetChip": "预设",
     "fromPreset": "该值继承自作品风格预设",
+    "descGroup": "主体与场景描述",
+    "termsGroup": "追加提示词",
     "subjectDesc": "主体描述",
     "subjectPlaceholder": "例如：a young woman in a red trench coat",
     "sceneDesc": "场景描述",
@@ -224,8 +227,6 @@
     "positive": "正向 Prompt",
     "negative": "负向 Prompt",
     "emptyPrompt": "选择参数或填写描述后，prompt 将在此实时生成",
-    "bgEdits": "背景改动（随遮罩导出）",
-    "bgEditsHint": "以下描述不并入主 prompt——导出包中每个区域附带独立遮罩和描述，供支持遮罩重绘的工具（如 VACE）使用。",
     "save": {
       "saved": "已保存",
       "saving": "保存中…",
@@ -243,7 +244,7 @@
     "title": "重置平台",
     "hint": "清空全部作品、镜头、控制信号与导出记录，并重新生成内置样板作品（可随时删除）。此操作不可恢复。",
     "button": "重置全部内容",
-    "warning": "所有作品、镜头、已提取的控制信号、背景标注与导出记录都将被永久删除，随后会重新生成内置样板作品。此操作无法撤销。",
+    "warning": "所有作品、镜头、已提取的控制信号与导出记录都将被永久删除，随后会重新生成内置样板作品。此操作无法撤销。",
     "typePrompt": "如需继续，请输入",
     "confirmBtn": "永久重置",
     "working": "正在重置…"
@@ -255,6 +256,14 @@
     },
     "subjectHint": "默认显示所有检出的主体（数字=镜头显著度，越突出越靠前）。点一下关掉不想要的。",
     "noSubjects": "这个镜头没有检出显著主体。",
+    "draw": "描区域",
+    "drawing": "描区域中 · 圈出范围",
+    "drawOverlayOnly": "切到叠加视图才能描",
+    "drawLabelPlaceholder": "标签（可选）：人群、寺庙…",
+    "manualHint": "圈出一块区域并标注内容——它会进入布局色块图和提示词。",
+    "enableHint": "打开 Layout 通道（或切到分离视图）才能编辑主体。",
+    "deleteTitle": "删除主体",
+    "deleteMessage": "删除这个手动标注的主体？",
     "backdropHint": "开/关背景平面：关闭后该区域为黑（不约束，交给 AI），不会被填充",
     "backdrop": {
       "top": "天空/顶面",
@@ -275,45 +284,26 @@
   "preset": {
     "button": "风格预设",
     "title": "作品风格预设",
-    "hint": "为整部作品设定默认摄影参数（如统一色调与画质风格）。之后新建的镜头会自动继承这些值作为初始参数，保证全片风格统一；已有镜头不受影响。",
+    "hint": "为整部作品设定默认摄影参数（如色调、画质风格）。新建镜头会继承这些初始值；已有镜头不受影响。",
     "perFilm": "此预设仅作用于当前作品，每个作品的风格预设相互独立、互不影响。"
   },
-  "bgEdit": {
-    "annotate": "标注背景改动",
-    "annotatingOn": "标注中 · 在画面上拖拽画框",
-    "hint": "在画面上拖拽绘制矩形框，标记要移除/新增/替换的背景区域。框会导出为遮罩供 AI 重绘。",
-    "empty": "暂无背景标注",
-    "newTitle": "新建背景改动",
-    "editTitle": "编辑背景改动",
-    "labelLabel": "名称",
-    "labelPlaceholder": "例如：移除右侧建筑",
-    "typeLabel": "改动类型",
-    "type": {
-      "remove": "移除",
-      "add": "新增",
-      "replace": "替换"
-    },
-    "descLabel": "改动描述（将写入 prompt）",
-    "descPlaceholder": "例如：replace with a dense forest",
-    "deleteTitle": "删除背景标注",
-    "deleteMessage": "确定删除标注「{{name}}」及其遮罩文件吗？"
-  },
   "preview": {
-    "hintBar": "拖动帧滑块查看各帧；点右侧「标注背景改动」后，在画面上按住拖拽画出矩形框，标记要移除/新增/替换的区域，拖动边角可调整。",
+    "hintBar": "拖动帧滑块查看各帧；打开 Layout 通道可在画面上看到色块布局；用右侧主体面板筛选主体，或点「描区域」圈出检测器漏掉的主体（人群、建筑、水面）并加标签。",
     "mode": {
       "overlay": "叠加视图",
       "split": "分离视图"
     },
     "source": "原始画面",
     "depthOpacity": "深度透明度",
+    "layoutOpacity": "布局透明度",
     "framesAt": "帧 @ {{fps}}fps"
   },
   "upload": {
     "dropHint": "拖拽视频到此处，或点击选择文件",
     "replaceHint": "拖拽或点击可重新上传",
-    "replaceWarning": "重新上传会替换当前视频，并清空已提取的控制信号、背景标注与导出记录，向导也将回到第一步。",
+    "replaceWarning": "重新上传会替换当前视频，并清空已提取的控制信号与导出记录，向导也将回到第一步。",
     "replaceTitle": "重新上传视频",
-    "replaceConfirm": "确定要替换当前视频吗？已提取的 pose / depth / layout、背景标注和导出记录都会被清除，此操作不可恢复。",
+    "replaceConfirm": "确定要替换当前视频吗？已提取的 pose / depth / layout 和导出记录都会被清除，此操作不可恢复。",
     "replaceConfirmBtn": "替换并清空",
     "formats": "支持 MP4 / MOV / AVI / MKV / WebM，最大 2GB",
     "uploading": "上传中 {{pct}}%",

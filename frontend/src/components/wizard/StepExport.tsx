@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { BackgroundEdit, ExtractionMeta, Shot } from '../../api/types'
+import type { ExtractionMeta, Shot } from '../../api/types'
 import {
   generatePrompt,
   getExtraction,
   getShot,
-  listBackgroundEdits,
   listExports,
   startExport,
   type ExportRecordOut,
@@ -22,7 +21,6 @@ interface Props {
 export default function StepExport({ shot, onShotUpdated }: Props) {
   const { t } = useTranslation()
   const [meta, setMeta] = useState<ExtractionMeta | null>(null)
-  const [edits, setEdits] = useState<BackgroundEdit[]>([])
   const [history, setHistory] = useState<ExportRecordOut[]>([])
   const [includeSource, setIncludeSource] = useState(false)
   const [includeVideos, setIncludeVideos] = useState(true)
@@ -38,7 +36,6 @@ export default function StepExport({ shot, onShotUpdated }: Props) {
         setChannels(m.channels)
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-    listBackgroundEdits(shot.id).then(setEdits).catch(console.error)
     listExports(shot.id).then(setHistory).catch(console.error)
   }, [shot.id])
 
@@ -58,7 +55,6 @@ export default function StepExport({ shot, onShotUpdated }: Props) {
       const { task_id } = await startExport(shot.id, {
         source: includeSource,
         channels,
-        masks: true,
         control_videos: includeVideos,
       })
       setTaskId(task_id)
@@ -144,10 +140,6 @@ export default function StepExport({ shot, onShotUpdated }: Props) {
               <span className={checkbox(includeSource)}>{includeSource && '✓'}</span>
               {t('export.sourceVideo')}
             </label>
-            <div className="flex items-center gap-2.5 text-slate-500">
-              <span className={checkbox(edits.length > 0, true)}>{edits.length > 0 && '✓'}</span>
-              {t('export.masksAuto', { count: edits.length })}
-            </div>
             <div className="flex items-center gap-2.5 text-slate-500">
               <span className={checkbox(true, true)}>✓</span>
               {t('export.always')}

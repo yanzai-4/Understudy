@@ -1,4 +1,4 @@
-"""Shot duplication: clone the DB row + params + annotations and copy the
+"""Shot duplication: clone the DB row + params + layout choices and copy the
 extraction products on disk, so a new version can tweak cinematography and
 prompt without re-running extraction."""
 
@@ -7,9 +7,8 @@ import shutil
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import BackgroundEdit, CameraParams, LayoutState, LensState, Shot
+from app.models import CameraParams, LayoutState, LensState, Shot
 from app.services import paths
-from app.services.mask_renderer import render_masks
 
 COPY_SUBDIRS = ["source", "thumbnail", "frames", "pose", "depth", "layout", "blockout"]
 CAMERA_FIELDS = [
@@ -17,6 +16,7 @@ CAMERA_FIELDS = [
     "camera_angle",
     "focal_length",
     "aperture",
+    "shutter",
     "camera_move",
     "light_position",
     "light_quality",
@@ -86,7 +86,7 @@ def duplicate_shot(db: Session, source: Shot, as_new_version: bool) -> Shot:
     if source_layout is not None:
         db.add(LayoutState(shot_id=clone.id, data=source_layout.data))
 
-    # Copy assets (everything except exports; masks are re-rendered for new edit ids).
+    # Copy assets (everything except exports).
     src_dir = paths.shot_dir(source.film_id, source.id)
     dst_dir = paths.ensure_shot_dirs(clone.film_id, clone.id)
     for sub in COPY_SUBDIRS:
@@ -95,22 +95,6 @@ def duplicate_shot(db: Session, source: Shot, as_new_version: bool) -> Shot:
             shutil.copytree(src_dir / sub, dst_dir / sub)
     if (src_dir / "extraction.json").exists():
         shutil.copy2(src_dir / "extraction.json", dst_dir / "extraction.json")
-
-    for edit in source.background_edits:
-        new_edit = BackgroundEdit(
-            shot_id=clone.id,
-            label=edit.label,
-            edit_type=edit.edit_type,
-            description=edit.description,
-            x=edit.x,
-            y=edit.y,
-            w=edit.w,
-            h=edit.h,
-            sort_order=edit.sort_order,
-        )
-        db.add(new_edit)
-        db.flush()
-        new_edit.mask_path = render_masks(clone, new_edit)
 
     db.commit()
     return clone

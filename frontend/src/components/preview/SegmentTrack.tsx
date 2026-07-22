@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /** Geometry-only view of a segment; the parent owns the value fields. */
 export interface TrackSegment {
@@ -58,6 +59,7 @@ export default function SegmentTrack({
   onDraw,
   onSelect,
 }: Props) {
+  const { t } = useTranslation()
   const trackRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<Drag | null>(null)
   const [ghost, setGhost] = useState<{ lo: number; hi: number } | null>(null)
@@ -194,7 +196,7 @@ export default function SegmentTrack({
             {touchesNext && !disabled && (
               <div
                 onPointerDown={(e) => beginDrag(e, { type: 'junction', index: i })}
-                title="交汇点"
+                title={t('lens.junction')}
                 className={`absolute top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 cursor-ew-resize rounded-[2px] ${a.junc} ring-1 ring-night-900`}
                 style={{ left: pct(s.end) }}
               />

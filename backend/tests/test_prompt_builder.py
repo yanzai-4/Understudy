@@ -1,4 +1,36 @@
-from app.services.prompt_builder import compose, load_mappings
+from app.services.prompt_builder import compose, layout_labels, load_mappings
+
+
+def test_layout_labels_dedupes_and_trims():
+    subjects = [
+        {"id": "m1", "group": "building", "label": " temple ", "polygon": []},
+        {"id": "m2", "group": "props", "label": "crowd", "polygon": []},
+        {"id": "m3", "group": "building", "label": "temple", "polygon": []},  # dup
+        {"id": "m4", "group": "props", "label": "", "polygon": []},  # empty skipped
+    ]
+    assert layout_labels(subjects) == ["temple", "crowd"]
+
+
+def test_scene_elements_inserted_after_scene_desc():
+    positive, _ = compose(
+        {"subject_desc": "a woman", "scene_desc": "a plaza"},
+        scene_elements=["a temple", "a crowd"],
+    )
+    assert positive == "a woman, a plaza, a temple, a crowd"
+
+
+def test_scene_elements_before_lens_phrases():
+    positive, _ = compose(
+        {"scene_desc": "a plaza"},
+        lens_phrases=["rack focus to the woman"],
+        scene_elements=["a fountain"],
+    )
+    assert positive == "a plaza, a fountain, rack focus to the woman"
+
+
+def test_scene_elements_empty_is_noop():
+    positive, _ = compose({"subject_desc": "hero"}, scene_elements=[])
+    assert positive == "hero"
 
 
 def full_params() -> dict:
@@ -78,6 +110,18 @@ def test_unknown_option_ignored():
 def test_whitespace_trimmed():
     positive, _ = compose({"subject_desc": "  hero  ", "custom_positive": " extra "})
     assert positive == "hero, extra"
+
+
+def test_shutter_dimension_composes():
+    positive, _ = compose({"shutter": "fast"})
+    assert "fast shutter speed" in positive
+
+
+def test_shutter_in_mapping_table():
+    mappings = load_mappings()
+    dims = {d["key"]: d for d in mappings["dimensions"]}
+    assert "shutter" in dims
+    assert {o["key"] for o in dims["shutter"]["options"]} == {"standard", "fast", "slow", "long"}
 
 
 def test_mapping_table_wellformed():

@@ -10,11 +10,26 @@ from functools import lru_cache
 
 from app.config import settings
 
+
+def layout_labels(manual_subjects: list[dict] | None) -> list[str]:
+    """Director-drawn manual-subject labels for the prompt: trimmed, non-empty,
+    de-duplicated, order preserved."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for subj in manual_subjects or []:
+        label = str(subj.get("label") or "").strip()
+        if label and label not in seen:
+            seen.add(label)
+            out.append(label)
+    return out
+
+
 DIMENSION_KEYS = [
     "shot_size",
     "camera_angle",
     "focal_length",  # legacy column; the dimension now lives in the lens step
     "aperture",
+    "shutter",
     "camera_move",
     "light_position",
     "light_quality",
@@ -48,10 +63,14 @@ def load_mappings() -> dict:
 
 
 def compose(
-    params: dict, mappings: dict | None = None, lens_phrases: list[str] | None = None
+    params: dict,
+    mappings: dict | None = None,
+    lens_phrases: list[str] | None = None,
+    scene_elements: list[str] | None = None,
 ) -> tuple[str, str]:
     """Returns (positive, negative). `params` holds camera_params column values;
-    `lens_phrases` are focus/zoom fragments from services.lens.lens_phrases."""
+    `lens_phrases` are focus/zoom fragments from services.lens.lens_phrases;
+    `scene_elements` are manual-subject labels joined after scene_desc."""
     mappings = mappings or load_mappings()
 
     fragment_by_dim_option: dict[tuple[str, str], str] = {}
@@ -65,6 +84,7 @@ def compose(
         if text:
             parts.append(text)
 
+    parts.extend(scene_elements or [])
     parts.extend(lens_phrases or [])
 
     for dim in sorted(mappings["dimensions"], key=lambda d: d["order"]):

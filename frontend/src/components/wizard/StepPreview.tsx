@@ -1,24 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { BackgroundEdit, ExtractionMeta, Shot } from '../../api/types'
+import type { ExtractionMeta, Shot } from '../../api/types'
 import {
-  createBackgroundEdit,
-  deleteBackgroundEdit,
+  getAde20k,
   getExtraction,
-  listBackgroundEdits,
-  updateBackgroundEdit,
+  getLayoutState,
+  putLayoutState,
+  type Ade20kAsset,
 } from '../../api/endpoints'
+import type { LayoutSceneJson, ManualSubject } from '../../lib/layoutScene'
 import FramePlayer from '../preview/FramePlayer'
-import BoxDrawLayer, { type NormBox } from '../preview/BoxDrawLayer'
-import BackgroundEditModal, { type EditFormValues } from '../preview/BackgroundEditModal'
+import LassoDrawLayer from '../preview/LassoDrawLayer'
+import SubjectPanel from '../preview/SubjectPanel'
+import ManualSubjectForm from '../preview/ManualSubjectForm'
 import ConfirmDialog from '../common/ConfirmDialog'
 import HintBar from '../common/HintBar'
 import Button from '../common/Button'
 
-const TYPE_DOT: Record<string, string> = {
-  remove: 'bg-red-400',
-  add: 'bg-emerald-400',
-  replace: 'bg-blue-400',
+type Palette = 'ade' | 'blockout'
+
+function nextManualId(subjects: ManualSubject[]): string {
+  const max = subjects.reduce((m, s) => Math.max(m, parseInt(s.id.slice(1), 10) || 0), 0)
+  return `m${max + 1}`
 }
 
 interface Props {
@@ -30,44 +33,114 @@ export default function StepPreview({ shot, onNext }: Props) {
   const { t } = useTranslation()
   const [meta, setMeta] = useState<ExtractionMeta | null>(null)
   const [error, setError] = useState('')
-  const [edits, setEdits] = useState<BackgroundEdit[]>([])
-  const [annotating, setAnnotating] = useState(false)
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [pendingBox, setPendingBox] = useState<NormBox | null>(null) // freshly drawn, awaiting form
-  const [editingEdit, setEditingEdit] = useState<BackgroundEdit | null>(null)
-  const [deletingEdit, setDeletingEdit] = useState<BackgroundEdit | null>(null)
+
+  // ---- layout state (single source of truth; persisted here) ----
+  const [asset, setAsset] = useState<Ade20kAsset | null>(null)
+  const [scene, setScene] = useState<LayoutSceneJson | null>(null)
+  const [selected, setSelected] = useState<(number | string)[] | null>(null)
+  const [disabledBackdrop, setDisabledBackdrop] = useState<string[]>([])
+  const [manualSubjects, setManualSubjects] = useState<ManualSubject[]>([])
+  const [palette, setPalette] = useState<Palette>('blockout')
+
+  // ---- interaction state ----
+  const [gate, setGate] = useState({ editable: false, canDraw: false })
+  const [drawMode, setDrawMode] = useState(false)
+  const [selectedManualId, setSelectedManualId] = useState<string | null>(null)
+  const [pendingPolygon, setPendingPolygon] = useState<[number, number][] | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latest = useRef({
+    selected: null as (number | string)[] | null,
+    backdrop: [] as string[],
+    manual: [] as ManualSubject[],
+  })
 
   useEffect(() => {
     getExtraction(shot.id)
       .then(setMeta)
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-    listBackgroundEdits(shot.id).then(setEdits).catch(console.error)
+    getAde20k().then(setAsset).catch(console.error)
+    fetch(`/files/${shot.film_id}/shots/${shot.id}/layout/scene.json`, { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setScene)
+      .catch(console.error)
+    getLayoutState(shot.id)
+      .then((s) => {
+        setSelected(s.selected_instances ?? null)
+        setDisabledBackdrop(s.disabled_backdrop ?? [])
+        setManualSubjects(s.manual_subjects ?? [])
+      })
+      .catch(console.error)
+  }, [shot.id, shot.film_id])
+
+  useEffect(() => {
+    latest.current = { selected, backdrop: disabledBackdrop, manual: manualSubjects }
+  }, [selected, disabledBackdrop, manualSubjects])
+
+  const persist = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(
+      () =>
+        putLayoutState(shot.id, {
+          selected_instances: latest.current.selected,
+          disabled_backdrop: latest.current.backdrop,
+          manual_subjects: latest.current.manual,
+        }).catch(console.error),
+      600,
+    )
   }, [shot.id])
 
-  const reload = async () => setEdits(await listBackgroundEdits(shot.id))
+  // default = show all (detected + manual); an explicit array = curation
+  const allIds = useMemo<(number | string)[]>(
+    () => [
+      ...(scene ? scene.instances.map((i) => i.id) : []),
+      ...manualSubjects.map((m) => m.id),
+    ],
+    [scene, manualSubjects],
+  )
+  const effSelected = selected ?? allIds
+  const disabledInstances = useMemo(
+    () => new Set<number | string>(allIds.filter((id) => !effSelected.includes(id))),
+    [allIds, effSelected],
+  )
+  const disabledBackdropSet = useMemo(() => new Set(disabledBackdrop), [disabledBackdrop])
 
-  const handleModalSubmit = async (values: EditFormValues) => {
-    if (editingEdit) {
-      await updateBackgroundEdit(editingEdit.id, values)
-    } else if (pendingBox) {
-      await createBackgroundEdit(shot.id, { ...values, ...pendingBox })
-    }
-    setPendingBox(null)
-    setEditingEdit(null)
-    await reload()
+  const toggleSubject = (id: number | string) => {
+    const base = selected ?? allIds
+    setSelected(base.includes(id) ? base.filter((x) => x !== id) : [...base, id])
+    persist()
   }
 
-  const handleBoxChange = async (id: number, box: NormBox) => {
-    await updateBackgroundEdit(id, box)
-    await reload()
+  const toggleBackdrop = (plane: 'top' | 'bottom') => {
+    setDisabledBackdrop((cur) => (cur.includes(plane) ? cur.filter((p) => p !== plane) : [...cur, plane]))
+    persist()
   }
 
-  const handleDelete = async () => {
-    if (!deletingEdit) return
-    await deleteBackgroundEdit(deletingEdit.id)
-    setDeletingEdit(null)
-    setSelectedId(null)
-    await reload()
+  const addManual = (group: string, label: string) => {
+    if (!pendingPolygon) return
+    const id = nextManualId(manualSubjects)
+    setManualSubjects((cur) => [...cur, { id, group, label, polygon: pendingPolygon }])
+    // keep it visible if the director is on an explicit selection
+    if (selected !== null) setSelected([...selected, id])
+    setPendingPolygon(null)
+    setDrawMode(false)
+    persist()
+  }
+
+  const changeManualPolygon = (id: string, polygon: [number, number][]) => {
+    setManualSubjects((cur) => cur.map((m) => (m.id === id ? { ...m, polygon } : m)))
+    persist()
+  }
+
+  const deleteManual = () => {
+    const id = deletingId
+    if (!id) return
+    setManualSubjects((cur) => cur.filter((m) => m.id !== id))
+    if (selected !== null) setSelected(selected.filter((x) => x !== id))
+    if (selectedManualId === id) setSelectedManualId(null)
+    setDeletingId(null)
+    persist()
   }
 
   if (error) return <p className="py-16 text-center text-sm text-red-300">{error}</p>
@@ -82,91 +155,66 @@ export default function StepPreview({ shot, onNext }: Props) {
           <FramePlayer
             shot={shot}
             meta={meta}
+            scene={scene}
+            asset={asset}
+            manualSubjects={manualSubjects}
+            disabledInstances={disabledInstances}
+            disabledBackdrop={disabledBackdropSet}
+            palette={palette}
+            onGate={setGate}
             overlayExtras={
-              <BoxDrawLayer
-                boxes={edits}
-                selectedId={selectedId}
-                drawMode={annotating}
-                onSelect={setSelectedId}
-                onDrawn={(box) => {
-                  setEditingEdit(null)
-                  setPendingBox(box)
-                }}
-                onBoxChange={handleBoxChange}
+              <LassoDrawLayer
+                manualSubjects={manualSubjects}
+                pendingPolygon={pendingPolygon}
+                interactive={gate.canDraw}
+                drawMode={drawMode && !pendingPolygon}
+                selectedId={selectedManualId}
+                onSelect={setSelectedManualId}
+                onDrawn={(polygon) => setPendingPolygon(polygon)}
+                onChangePolygon={changeManualPolygon}
               />
             }
           />
         </div>
 
-        {/* Annotation sidebar */}
-        <aside className="flex w-64 shrink-0 flex-col gap-2.5">
-          <button
-            onClick={() => setAnnotating((v) => !v)}
-            className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-              annotating
-                ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-300 shadow-lg shadow-cyan-950/40'
-                : 'border-accent/60 bg-accent/10 text-cyan-300 hover:border-accent hover:bg-accent/20'
-            }`}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-              <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="4 3" />
-              <path d="M9 9h6v6H9z" />
-            </svg>
-            {annotating ? t('bgEdit.annotatingOn') : t('bgEdit.annotate')}
-          </button>
-          {annotating && <p className="text-[11px] leading-relaxed text-slate-600">{t('bgEdit.hint')}</p>}
-
-          <div className="flex flex-col gap-1.5 overflow-y-auto">
-            {edits.length === 0 && (
-              <p className="py-4 text-center text-[11px] text-slate-600">{t('bgEdit.empty')}</p>
-            )}
-            {edits.map((edit) => (
-              <div
-                key={edit.id}
-                onClick={() => setSelectedId(edit.id === selectedId ? null : edit.id)}
-                className={`cursor-pointer rounded-lg border px-3 py-2 transition ${
-                  selectedId === edit.id
-                    ? 'border-cyan-500/50 bg-night-800'
-                    : 'border-night-700 bg-night-850 hover:border-night-600'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${TYPE_DOT[edit.edit_type]}`} />
-                  <span className="min-w-0 flex-1 truncate text-xs text-slate-200">{edit.label}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setPendingBox(null)
-                      setEditingEdit(edit)
-                    }}
-                    className="text-slate-600 hover:text-slate-300"
-                    title={t('common.edit')}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setDeletingEdit(edit)
-                    }}
-                    className="text-slate-600 hover:text-red-300"
-                    title={t('common.delete')}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="mt-0.5 flex items-center gap-1.5 pl-4 text-[10px] text-slate-500">
-                  <span>{t(`bgEdit.type.${edit.edit_type}`)}</span>
-                  {edit.description && <span className="truncate">· {edit.description}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
+        {/* Subject panel + inline manual-subject form */}
+        <div className="flex shrink-0 flex-col gap-2.5">
+          <SubjectPanel
+            asset={asset}
+            scene={scene}
+            effSelected={effSelected}
+            manualSubjects={manualSubjects}
+            disabledBackdrop={disabledBackdrop}
+            editable={gate.editable}
+            canDraw={gate.canDraw}
+            palette={palette}
+            onPaletteChange={setPalette}
+            drawMode={drawMode}
+            onToggleDraw={() => setDrawMode((v) => !v)}
+            selectedManualId={selectedManualId}
+            onSelectManual={setSelectedManualId}
+            onToggleSubject={toggleSubject}
+            onToggleBackdrop={toggleBackdrop}
+            onDeleteManual={setDeletingId}
+          />
+          {!gate.editable && (
+            <p className="w-64 text-[11px] leading-relaxed text-amber-400/90">{t('layout.enableHint')}</p>
+          )}
+          {gate.canDraw && drawMode && !pendingPolygon && (
+            <p className="w-64 text-[11px] leading-relaxed text-slate-600">{t('layout.manualHint')}</p>
+          )}
+          {pendingPolygon && (
+            <div className="w-64">
+              <ManualSubjectForm
+                onSubmit={addManual}
+                onCancel={() => {
+                  setPendingPolygon(null)
+                  setDrawMode(false)
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between text-xs text-slate-500">
@@ -177,21 +225,12 @@ export default function StepPreview({ shot, onNext }: Props) {
         <Button onClick={onNext}>{t('common.next')} →</Button>
       </div>
 
-      <BackgroundEditModal
-        open={pendingBox !== null || editingEdit !== null}
-        edit={editingEdit}
-        onClose={() => {
-          setPendingBox(null)
-          setEditingEdit(null)
-        }}
-        onSubmit={handleModalSubmit}
-      />
       <ConfirmDialog
-        open={deletingEdit !== null}
-        title={t('bgEdit.deleteTitle')}
-        message={t('bgEdit.deleteMessage', { name: deletingEdit?.label ?? '' })}
-        onConfirm={handleDelete}
-        onCancel={() => setDeletingEdit(null)}
+        open={deletingId !== null}
+        title={t('layout.deleteTitle')}
+        message={t('layout.deleteMessage')}
+        onConfirm={deleteManual}
+        onCancel={() => setDeletingId(null)}
       />
     </div>
   )

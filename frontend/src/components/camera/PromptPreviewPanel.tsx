@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { BackgroundEdit, CameraParamsValues, PromptMappings } from '../../api/types'
+import type { CameraParamsValues, PromptMappings } from '../../api/types'
 import { composeNegative, composeParts } from '../../lib/promptCompose'
 
 // Stable color per fragment source so the director can trace each phrase back.
 const SOURCE_COLORS: Record<string, string> = {
   subject: 'text-slate-100',
   scene: 'text-slate-300',
+  scene_element: 'text-teal-300',
   lens: 'text-indigo-300',
   shot_size: 'text-cyan-300',
   camera_angle: 'text-sky-300',
@@ -25,16 +26,17 @@ const SOURCE_COLORS: Record<string, string> = {
 interface Props {
   params: CameraParamsValues
   mappings: PromptMappings
-  edits: BackgroundEdit[]
+  /** Manual-subject labels from the layout step, joined into the positive prompt. */
+  sceneElements: string[]
   /** Focus/zoom fragments from the lens step (lib/lensPhrase). */
   lensPhrases?: string[]
 }
 
-export default function PromptPreviewPanel({ params, mappings, edits, lensPhrases = [] }: Props) {
+export default function PromptPreviewPanel({ params, mappings, sceneElements, lensPhrases = [] }: Props) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState<'pos' | 'neg' | null>(null)
 
-  const parts = composeParts(params, mappings, lensPhrases)
+  const parts = composeParts(params, mappings, lensPhrases, sceneElements)
   const positive = parts.map((p) => p.text).join(', ')
   const negative = composeNegative(params, mappings)
   const wordCount = positive.split(/\s+/).filter(Boolean).length
@@ -90,24 +92,6 @@ export default function PromptPreviewPanel({ params, mappings, edits, lensPhrase
         </div>
         <p className="font-mono text-[12px] leading-relaxed text-slate-500">{negative}</p>
       </div>
-
-      {/* Background edit intents (exported as per-region masks + prompts) */}
-      {edits.length > 0 && (
-        <div className={block}>
-          <span className="text-xs font-semibold text-slate-300">{t('camera.bgEdits')}</span>
-          <p className="mt-1 text-[10px] leading-relaxed text-slate-600">{t('camera.bgEditsHint')}</p>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {edits.map((e) => (
-              <li key={e.id} className="flex items-baseline gap-2 text-[12px]">
-                <span className="shrink-0 text-slate-500">
-                  [{t(`bgEdit.type.${e.edit_type}`)}] {e.label}:
-                </span>
-                <span className="font-mono text-slate-300">{e.description || '—'}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   )
 }

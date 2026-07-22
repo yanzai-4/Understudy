@@ -1,4 +1,5 @@
 import type { CameraParamsValues, PromptMappings } from '../api/types'
+import type { ManualSubject } from './layoutScene'
 
 /**
  * Mirrors backend services/prompt_builder.py exactly (ordered fragments joined
@@ -6,14 +7,30 @@ import type { CameraParamsValues, PromptMappings } from '../api/types'
  */
 
 export interface PromptPart {
-  source: string // 'subject' | 'scene' | dimension key | 'custom'
+  source: string // 'subject' | 'scene' | 'scene_element' | dimension key | 'custom'
   text: string
+}
+
+/** Manual-subject labels for the prompt: trimmed, non-empty, de-duped, order kept.
+ * Mirrors backend prompt_builder.layout_labels. */
+export function layoutLabels(manualSubjects: ManualSubject[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const s of manualSubjects) {
+    const label = (s.label ?? '').trim()
+    if (label && !seen.has(label)) {
+      seen.add(label)
+      out.push(label)
+    }
+  }
+  return out
 }
 
 export function composeParts(
   params: CameraParamsValues,
   mappings: PromptMappings,
   lensPhrases: string[] = [],
+  sceneElements: string[] = [],
 ): PromptPart[] {
   const parts: PromptPart[] = []
 
@@ -21,6 +38,8 @@ export function composeParts(
   if (subject) parts.push({ source: 'subject', text: subject })
   const scene = (params.scene_desc ?? '').trim()
   if (scene) parts.push({ source: 'scene', text: scene })
+
+  for (const el of sceneElements) parts.push({ source: 'scene_element', text: el })
 
   for (const phrase of lensPhrases) parts.push({ source: 'lens', text: phrase })
 

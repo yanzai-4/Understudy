@@ -72,6 +72,18 @@
       ]
     },
     {
+      "key": "shutter",
+      "label_zh": "快门",
+      "label_en": "Shutter",
+      "order": 55,
+      "options": [
+        { "key": "standard", "label_zh": "标准 180°", "label_en": "Standard (180°)", "fragment": "natural motion blur" },
+        { "key": "fast", "label_zh": "高速快门", "label_en": "Fast shutter", "fragment": "fast shutter speed, crisp sharp motion, minimal motion blur" },
+        { "key": "slow", "label_zh": "慢速快门", "label_en": "Slow shutter", "fragment": "slow shutter speed, pronounced motion blur" },
+        { "key": "long", "label_zh": "长曝光", "label_en": "Long exposure", "fragment": "long exposure, streaking light trails, heavy motion blur" }
+      ]
+    },
+    {
       "key": "light_position",
       "label_zh": "光位",
       "label_en": "Light position",

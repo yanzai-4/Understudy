@@ -10,6 +10,7 @@
   "common": {
     "create": "Create",
     "save": "Save",
+    "add": "Add",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
@@ -125,7 +126,7 @@
     }
   },
   "lens": {
-    "hintBar": "Draw a segment on the focus/zoom track: within a segment the focal plane / focal length is held steady, and the gaps between segments ease from one to the next (rack focus / zoom). Drag a segment's edges to change start/end; where two segments meet, the diamond is the 交汇点 — drag it to move both at once. Select a segment, then click the frame to set its focal plane or zoom center.",
+    "hintBar": "Draw a segment on the focus/zoom track — within it the focal plane / focal length holds steady; the gaps between segments ease from one to the next (rack focus / zoom). Drag a segment's edges to reshape it; where two meet, drag the diamond to move both. Select a segment, then click the frame to set its focal plane or zoom center.",
     "source": {
       "original": "Original",
       "live": "Live preview",
@@ -145,7 +146,8 @@
     "laneFocus": "Focus",
     "laneZoom": "Zoom",
     "addSegment": "Segment",
-    "trackHint": "Click or drag on empty track to add a segment · drag edges for start/end · drag the 交汇点 diamond to move both neighbours · max 3 per track",
+    "junction": "Junction · drag to move both segments",
+    "trackHint": "Click or drag empty track to add a segment · drag edges for start/end · drag the diamond to move both neighbours · max 3 per track",
     "play": "Play",
     "pause": "Pause",
     "followSubject": "Focus follows subject",
@@ -199,7 +201,6 @@
     "channelSeq": "{{ch}} PNG sequence",
     "controlVideos": "Control-signal mp4 videos (for web-based platforms)",
     "sourceVideo": "Original source video",
-    "masksAuto": "Background edit masks + descriptions ({{count}} annotations, automatic)",
     "always": "prompt.txt / metadata.json / README guide (always included)",
     "start": "Generate prompt & export",
     "again": "Export again",
@@ -213,6 +214,8 @@
     "unspecified": "— unspecified —",
     "presetChip": "preset",
     "fromPreset": "Inherited from the film style preset",
+    "descGroup": "Subject & scene",
+    "termsGroup": "Extra prompt terms",
     "subjectDesc": "Subject description",
     "subjectPlaceholder": "e.g. a young woman in a red trench coat",
     "sceneDesc": "Scene description",
@@ -224,8 +227,6 @@
     "positive": "Positive prompt",
     "negative": "Negative prompt",
     "emptyPrompt": "Pick parameters or fill descriptions — the prompt builds here live",
-    "bgEdits": "Background edits (exported with masks)",
-    "bgEditsHint": "These are not merged into the main prompt — each region ships with its own mask and description for masked-editing tools (e.g. VACE).",
     "save": {
       "saved": "Saved",
       "saving": "Saving…",
@@ -243,7 +244,7 @@
     "title": "Reset app",
     "hint": "Erase every film, shot, control signal and export, then recreate the bundled demo projects (deletable anytime). This can't be undone.",
     "button": "Reset everything",
-    "warning": "All films, shots, extracted control signals, background annotations and export records will be permanently deleted, then the bundled demo projects are recreated. This cannot be undone.",
+    "warning": "All films, shots, extracted control signals and export records will be permanently deleted, then the bundled demo projects are recreated. This cannot be undone.",
     "typePrompt": "To continue, type",
     "confirmBtn": "Reset permanently",
     "working": "Resetting…"
@@ -255,6 +256,14 @@
     },
     "subjectHint": "All detected subjects are shown by default (number = cinematic salience, most prominent first). Click to turn one off.",
     "noSubjects": "No salient subjects detected in this shot.",
+    "draw": "Draw region",
+    "drawing": "Drawing · lasso a region",
+    "drawOverlayOnly": "Switch to Overlay mode to draw",
+    "drawLabelPlaceholder": "Label (optional): crowd, temple…",
+    "manualHint": "Lasso a region and label what belongs there — it joins the layout blockout and the prompt.",
+    "enableHint": "Turn on the Layout channel (or switch to Split) to edit subjects.",
+    "deleteTitle": "Delete subject",
+    "deleteMessage": "Delete this manual subject?",
     "backdropHint": "Toggle a backdrop plane: disabled area renders black (unconstrained) — not backfilled",
     "backdrop": {
       "top": "Sky / top",
@@ -275,45 +284,26 @@
   "preset": {
     "button": "Style preset",
     "title": "Film style preset",
-    "hint": "Set default cinematography for the whole film (e.g. one color grade and visual style). New shots inherit these as initial values; existing shots are unaffected.",
+    "hint": "Set default cinematography for the whole film (e.g. a color grade and visual style). New shots inherit these as initial values; existing shots are unaffected.",
     "perFilm": "This preset applies only to the current film — each film has its own independent style preset."
   },
-  "bgEdit": {
-    "annotate": "Annotate background edits",
-    "annotatingOn": "Annotating · drag on the frame to draw",
-    "hint": "Drag on the frame to draw boxes over background regions to remove/add/replace. Boxes export as masks for AI inpainting.",
-    "empty": "No background annotations yet",
-    "newTitle": "New background edit",
-    "editTitle": "Edit background edit",
-    "labelLabel": "Label",
-    "labelPlaceholder": "e.g. Remove building on the right",
-    "typeLabel": "Edit type",
-    "type": {
-      "remove": "Remove",
-      "add": "Add",
-      "replace": "Replace"
-    },
-    "descLabel": "Description (goes into the prompt)",
-    "descPlaceholder": "e.g. replace with a dense forest",
-    "deleteTitle": "Delete annotation",
-    "deleteMessage": "Delete annotation “{{name}}” and its mask files?"
-  },
   "preview": {
-    "hintBar": "Scrub the frame slider to review frames. Click “Annotate background edits” on the right, then drag on the frame to draw a box over a region to remove/add/replace; drag its corners to adjust.",
+    "hintBar": "Scrub the frame slider to review frames. Turn on the Layout channel to see the blockout over the frame; use the subject panel on the right to curate subjects, or “Draw region” to lasso a subject the detector missed (a crowd, a building, water) and label it.",
     "mode": {
       "overlay": "Overlay",
       "split": "Split"
     },
     "source": "Source",
     "depthOpacity": "Depth opacity",
+    "layoutOpacity": "Layout opacity",
     "framesAt": "frames @ {{fps}}fps"
   },
   "upload": {
     "dropHint": "Drop a video here, or click to browse",
     "replaceHint": "Drop or click to re-upload",
-    "replaceWarning": "Re-uploading replaces the current video and clears the extracted control signals, background annotations and exports; the wizard also returns to step 1.",
+    "replaceWarning": "Re-uploading replaces the current video and clears the extracted control signals and exports; the wizard also returns to step 1.",
     "replaceTitle": "Re-upload video",
-    "replaceConfirm": "Replace the current video? The extracted pose / depth / layout, background annotations and export history will all be removed. This cannot be undone.",
+    "replaceConfirm": "Replace the current video? The extracted pose / depth / layout and export history will all be removed. This cannot be undone.",
     "replaceConfirmBtn": "Replace & clear",
     "formats": "MP4 / MOV / AVI / MKV / WebM, up to 2 GB",
     "uploading": "Uploading {{pct}}%",

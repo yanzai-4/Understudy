@@ -369,6 +369,44 @@ def test_track_output_carries_color():
 # ---------- backdrop toggles ----------
 
 
+def test_group_repr_cls_matches_asset_group():
+    cls = ls.group_repr_cls(META, "building")
+    assert cls is not None and META["groups"][cls] == "building"
+
+
+def _manual(id="m1", group="building", label="temple"):
+    # a rectangle polygon covering the left-center of a 160x120 frame
+    return {"id": id, "group": group, "label": label,
+            "polygon": [[0.1, 0.3], [0.4, 0.3], [0.4, 0.7], [0.1, 0.7]]}
+
+
+def test_manual_subject_polygon_rendered_in_blockout():
+    scene = _scene_with_person()
+    img = ls.render_frame(scene, META, 0, "blockout", manual_subjects=[_manual()])
+    # a point inside the polygon (0.25*160, 0.5*120) = (40, 60): the depth-shaded
+    # building tone (building sits at MANUAL_DEPTH["building"])
+    factor = ls.SHADE_MIN + ls.SHADE_SPAN * ls.MANUAL_DEPTH["building"]
+    building_bgr = np.array(META["blockout_palette"]["building"][::-1]) * factor
+    assert np.abs(img[60, 40].astype(int) - building_bgr).sum() < 6
+
+
+def test_manual_subject_hidden_when_disabled():
+    scene = _scene_with_person()
+    shown = ls.render_frame(scene, META, 0, "ade", manual_subjects=[_manual()])
+    hidden = ls.render_frame(scene, META, 0, "ade", manual_subjects=[_manual()],
+                             disabled_instances={"m1"})
+    building_rgb = META["palette"][ls.group_repr_cls(META, "building")][::-1]
+    assert shown[60, 40].tolist() == list(building_rgb)
+    assert hidden[60, 40].tolist() != list(building_rgb)  # backdrop shows through
+    assert hidden[60, 40].sum() > 0  # not a black hole
+
+
+def test_manual_subject_absent_by_default():
+    scene = _scene_with_person()
+    img = ls.render_frame(scene, META, 0, "ade")  # no manual_subjects arg
+    assert img.shape == (120, 160, 3)  # unchanged signature default
+
+
 def test_disabled_backdrop_renders_black_not_backfilled():
     scene = _scene_with_person()
     img = ls.render_frame(scene, META, 0, "ade", disabled_backdrop={"top"})

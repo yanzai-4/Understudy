@@ -82,9 +82,6 @@ class Shot(Base):
     camera_params: Mapped["CameraParams | None"] = relationship(
         back_populates="shot", cascade="all, delete-orphan", uselist=False, passive_deletes=True
     )
-    background_edits: Mapped[list["BackgroundEdit"]] = relationship(
-        back_populates="shot", cascade="all, delete-orphan", passive_deletes=True
-    )
     prompts: Mapped[list["PromptRecord"]] = relationship(
         back_populates="shot", cascade="all, delete-orphan", passive_deletes=True
     )
@@ -112,6 +109,7 @@ class CameraParams(Base):
     camera_angle: Mapped[str | None] = mapped_column(String(50), nullable=True)
     focal_length: Mapped[str | None] = mapped_column(String(50), nullable=True)
     aperture: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    shutter: Mapped[str | None] = mapped_column(String(50), nullable=True)
     camera_move: Mapped[str | None] = mapped_column(String(50), nullable=True)
     lighting: Mapped[str | None] = mapped_column(String(50), nullable=True)  # deprecated, split below
     light_position: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -130,30 +128,6 @@ class CameraParams(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
     shot: Mapped[Shot] = relationship(back_populates="camera_params")
-
-
-class BackgroundEdit(Base):
-    """A user-drawn region on the frame with an edit intent (v1: static box)."""
-
-    __tablename__ = "background_edits"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    shot_id: Mapped[str] = mapped_column(
-        String(32), ForeignKey("shots.id", ondelete="CASCADE"), index=True
-    )
-    label: Mapped[str] = mapped_column(String(200))
-    edit_type: Mapped[str] = mapped_column(String(20))  # remove | add | replace
-    description: Mapped[str] = mapped_column(Text, default="")
-    # Normalized 0-1 coordinates relative to the video frame.
-    x: Mapped[float] = mapped_column(Float)
-    y: Mapped[float] = mapped_column(Float)
-    w: Mapped[float] = mapped_column(Float)
-    h: Mapped[float] = mapped_column(Float)
-    mask_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    sort_order: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-
-    shot: Mapped[Shot] = relationship(back_populates="background_edits")
 
 
 class PromptRecord(Base):

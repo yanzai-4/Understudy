@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ExtractionMeta, Shot } from '../../api/types'
 import { usePreloadFrames } from '../../hooks/useFrameUrl'
+import type { Ade20kAsset } from '../../api/endpoints'
+import type { LayoutSceneJson, ManualSubject } from '../../lib/layoutScene'
 import ChannelToggle from './ChannelToggle'
 import FrameSlider from './FrameSlider'
 import OverlayView from './OverlayView'
@@ -10,12 +12,34 @@ import SplitView from './SplitView'
 interface Props {
   shot: Shot
   meta: ExtractionMeta
-  overlayExtras?: ReactNode // e.g. background-edit draw layer (overlay mode only)
+  overlayExtras?: ReactNode // e.g. lasso draw layer (overlay mode only)
   frameIndex?: number
   onFrameChange?: (index: number) => void
+  // shared layout state (owned by StepPreview)
+  scene: LayoutSceneJson | null
+  asset: Ade20kAsset | null
+  manualSubjects: ManualSubject[]
+  disabledInstances: Set<number | string>
+  disabledBackdrop: Set<string>
+  palette: 'ade' | 'blockout'
+  /** editable = split OR (overlay & layout on); canDraw = overlay & layout on. */
+  onGate?: (gate: { editable: boolean; canDraw: boolean }) => void
 }
 
-export default function FramePlayer({ shot, meta, overlayExtras, frameIndex, onFrameChange }: Props) {
+export default function FramePlayer({
+  shot,
+  meta,
+  overlayExtras,
+  frameIndex,
+  onFrameChange,
+  scene,
+  asset,
+  manualSubjects,
+  disabledInstances,
+  disabledBackdrop,
+  palette,
+  onGate,
+}: Props) {
   const { t } = useTranslation()
   const [internalIndex, setInternalIndex] = useState(0)
   const index = frameIndex ?? internalIndex
@@ -30,8 +54,16 @@ export default function FramePlayer({ shot, meta, overlayExtras, frameIndex, onF
     meta.channels.filter((c) => c === 'pose'),
   )
   const [depthOpacity, setDepthOpacity] = useState(0.5)
+  const [layoutOpacity, setLayoutOpacity] = useState(0.55)
   const indexRef = useRef(index)
   indexRef.current = index
+
+  const layoutOn = overlayChannels.includes('layout')
+  const editable = mode === 'split' || layoutOn
+  const canDraw = mode === 'overlay' && layoutOn
+  useEffect(() => {
+    onGate?.({ editable, canDraw })
+  }, [editable, canDraw]) // eslint-disable-line react-hooks/exhaustive-deps
 
   usePreloadFrames(shot, ['frames', ...meta.channels], index, meta.frame_count)
 
@@ -85,6 +117,19 @@ export default function FramePlayer({ shot, meta, overlayExtras, frameIndex, onF
                 />
               </label>
             )}
+            {layoutOn && (
+              <label className="flex items-center gap-2 text-[11px] text-slate-500">
+                {t('preview.layoutOpacity')}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={layoutOpacity * 100}
+                  onChange={(e) => setLayoutOpacity(Number(e.target.value) / 100)}
+                  className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-night-700 accent-teal-400"
+                />
+              </label>
+            )}
           </>
         )}
       </div>
@@ -97,11 +142,28 @@ export default function FramePlayer({ shot, meta, overlayExtras, frameIndex, onF
             index={index}
             channels={overlayChannels}
             depthOpacity={depthOpacity}
+            layoutOn={layoutOn}
+            layoutOpacity={layoutOpacity}
+            scene={scene}
+            asset={asset}
+            manualSubjects={manualSubjects}
+            disabledInstances={disabledInstances}
+            disabledBackdrop={disabledBackdrop}
           >
             {overlayExtras}
           </OverlayView>
         ) : (
-          <SplitView shot={shot} index={index} channels={meta.channels} />
+          <SplitView
+            shot={shot}
+            index={index}
+            channels={meta.channels}
+            palette={palette}
+            scene={scene}
+            asset={asset}
+            manualSubjects={manualSubjects}
+            disabledInstances={disabledInstances}
+            disabledBackdrop={disabledBackdrop}
+          />
         )}
       </div>
 

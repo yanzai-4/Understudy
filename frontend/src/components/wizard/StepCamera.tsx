@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type {
-  BackgroundEdit,
   CameraParamsValues,
   Film,
   LensData,
@@ -10,12 +9,13 @@ import type {
 } from '../../api/types'
 import {
   getCameraParams,
+  getLayoutState,
   getLens,
   getPromptMappings,
-  listBackgroundEdits,
   putCameraParams,
 } from '../../api/endpoints'
 import { lensPhrases } from '../../lib/lensPhrase'
+import { layoutLabels } from '../../lib/promptCompose'
 import CameraForm from '../camera/CameraForm'
 import PromptPreviewPanel from '../camera/PromptPreviewPanel'
 import Button from '../common/Button'
@@ -30,7 +30,7 @@ export default function StepCamera({ shot, film, onNext }: Props) {
   const { t } = useTranslation()
   const [mappings, setMappings] = useState<PromptMappings | null>(null)
   const [values, setValues] = useState<CameraParamsValues | null>(null)
-  const [edits, setEdits] = useState<BackgroundEdit[]>([])
+  const [sceneElements, setSceneElements] = useState<string[]>([])
   const [lens, setLens] = useState<LensData | null>(null)
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'dirty'>('saved')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -39,13 +39,13 @@ export default function StepCamera({ shot, film, onNext }: Props) {
     Promise.all([
       getPromptMappings(),
       getCameraParams(shot.id),
-      listBackgroundEdits(shot.id),
+      getLayoutState(shot.id),
       getLens(shot.id),
     ])
-      .then(([m, v, e, l]) => {
+      .then(([m, v, layout, l]) => {
         setMappings(m)
         setValues(v)
-        setEdits(e)
+        setSceneElements(layoutLabels(layout.manual_subjects ?? []))
         setLens(l)
       })
       .catch(console.error)
@@ -105,7 +105,7 @@ export default function StepCamera({ shot, film, onNext }: Props) {
           <PromptPreviewPanel
             params={values}
             mappings={mappings}
-            edits={edits}
+            sceneElements={sceneElements}
             lensPhrases={lensPhrases(lens, mappings, Boolean(values.camera_move))}
           />
         </div>

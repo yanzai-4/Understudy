@@ -6,7 +6,6 @@ export interface Page<T> {
 }
 
 export type ShotStatus = 'draft' | 'extracted' | 'exported'
-export type EditType = 'remove' | 'add' | 'replace'
 
 export interface Film {
   id: string
@@ -158,6 +157,7 @@ export interface CameraParamsValues {
   camera_angle: string | null
   focal_length: string | null
   aperture: string | null
+  shutter: string | null
   camera_move: string | null
   light_position: string | null
   light_quality: string | null
@@ -170,20 +170,6 @@ export interface CameraParamsValues {
   scene_desc: string
   custom_positive: string
   custom_negative: string
-}
-
-export interface BackgroundEdit {
-  id: number
-  shot_id: string
-  label: string
-  edit_type: EditType
-  description: string
-  x: number
-  y: number
-  w: number
-  h: number
-  mask_url: string | null
-  sort_order: number
 }
 
 export type OrtProvider = 'cpu' | 'directml' | 'coreml'

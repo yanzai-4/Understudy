@@ -15,6 +15,7 @@ class CameraParamsUpdate(BaseModel):
     camera_angle: str | None = None
     focal_length: str | None = None
     aperture: str | None = None
+    shutter: str | None = None
     camera_move: str | None = None
     light_position: str | None = None
     light_quality: str | None = None
@@ -69,8 +70,10 @@ def put_camera_params(shot_id: str, body: CameraParamsUpdate, db: Session = Depe
 @router.post("/shots/{shot_id}/prompt")
 def generate_prompt(shot_id: str, db: Session = Depends(get_db)) -> dict:
     """Authoritative prompt generation, persisted as a history snapshot."""
-    from app.models import LensState
+    from app.api.layout import normalize_layout_state
+    from app.models import LayoutState, LensState
     from app.services.lens import lens_phrases
+    from app.services.prompt_builder import layout_labels
 
     get_shot_or_404(db, shot_id)
     params = get_or_create_params(db, shot_id)
@@ -82,12 +85,17 @@ def generate_prompt(shot_id: str, db: Session = Depends(get_db)) -> dict:
         lens_state.data if lens_state else {}, mappings, camera_move_set=bool(snapshot.get("camera_move"))
     )
 
-    positive, negative = compose(snapshot, mappings, phrases)
+    layout_state = db.get(LayoutState, shot_id)
+    elements = layout_labels(
+        normalize_layout_state(layout_state.data if layout_state else None)["manual_subjects"]
+    )
+
+    positive, negative = compose(snapshot, mappings, phrases, elements)
     record = PromptRecord(
         shot_id=shot_id,
         positive_prompt=positive,
         negative_prompt=negative,
-        params_snapshot={**snapshot, "lens_phrases": phrases},
+        params_snapshot={**snapshot, "lens_phrases": phrases, "scene_elements": elements},
     )
     db.add(record)
     db.commit()

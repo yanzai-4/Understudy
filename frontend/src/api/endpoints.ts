@@ -1,9 +1,8 @@
 import { api, qs } from './client'
+import type { ManualSubject } from '../lib/layoutScene'
 import type {
   AppSettings,
-  BackgroundEdit,
   CameraParamsValues,
-  EditType,
   LensData,
   PromptMappings,
   ExtractionMeta,
@@ -118,40 +117,6 @@ export const getTask = (taskId: string) => api.get<TaskSnapshot>(`/api/tasks/${t
 
 export const cancelTask = (taskId: string) => api.post<{ ok: boolean }>(`/api/tasks/${taskId}/cancel`)
 
-// ---------- Background edits ----------
-
-export const listBackgroundEdits = (shotId: string) =>
-  api.get<BackgroundEdit[]>(`/api/shots/${shotId}/background-edits`)
-
-export const createBackgroundEdit = (
-  shotId: string,
-  body: {
-    label: string
-    edit_type: EditType
-    description: string
-    x: number
-    y: number
-    w: number
-    h: number
-  },
-) => api.post<BackgroundEdit>(`/api/shots/${shotId}/background-edits`, body)
-
-export const updateBackgroundEdit = (
-  editId: number,
-  body: Partial<{
-    label: string
-    edit_type: EditType
-    description: string
-    x: number
-    y: number
-    w: number
-    h: number
-  }>,
-) => api.patch<BackgroundEdit>(`/api/background-edits/${editId}`, body)
-
-export const deleteBackgroundEdit = (editId: number) =>
-  api.delete(`/api/background-edits/${editId}`)
-
 // ---------- Camera params & prompt ----------
 
 export const getPromptMappings = () => api.get<PromptMappings>('/api/prompt-mappings')
@@ -198,9 +163,10 @@ export interface Ade20kAsset {
 }
 
 export interface LayoutStateData {
-  // director's curated subject ids; null = follow the tool's auto (salient) set
-  selected_instances: number[] | null
+  // director's curated ids; null = show all. Detected ids are numbers, manual 'm<n>'.
+  selected_instances: (number | string)[] | null
   disabled_backdrop: string[] // 'top' | 'bottom' — disabled planes render black
+  manual_subjects: ManualSubject[]
 }
 
 let adeAssetCache: Promise<Ade20kAsset> | null = null
@@ -228,7 +194,6 @@ export const startExport = (
   include: {
     source: boolean
     channels: string[] | null
-    masks: boolean
     control_videos: boolean
   },
 ) => api.post<{ task_id: string }>(`/api/shots/${shotId}/export`, { include })

@@ -48,7 +48,7 @@ def _migrate() -> None:
     """Lightweight additive migrations for existing databases (SQLite only
     needs ADD COLUMN; create_all handles brand-new tables)."""
     added_columns = {
-        "camera_params": ["light_position", "light_quality", "light_mood"],
+        "camera_params": ["light_position", "light_quality", "light_mood", "shutter"],
     }
     with engine.begin() as conn:
         for table, columns in added_columns.items():
@@ -56,3 +56,5 @@ def _migrate() -> None:
             for col in columns:
                 if col not in existing:
                     conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {col} VARCHAR(50)")
+        # background-edit feature removed — drop its table if an old DB still has it
+        conn.exec_driver_sql("DROP TABLE IF EXISTS background_edits")

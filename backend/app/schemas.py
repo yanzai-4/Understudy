@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 T = TypeVar("T")
 
 ShotStatus = Literal["draft", "extracted", "exported"]
-EditType = Literal["remove", "add", "replace"]
 
 
 class Page(BaseModel, Generic[T]):

@@ -24,6 +24,7 @@ CAMERA_PARAM_FIELDS = [
     "camera_angle",
     "focal_length",
     "aperture",
+    "shutter",
     "camera_move",
     "light_position",
     "light_quality",

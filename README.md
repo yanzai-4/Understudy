@@ -24,33 +24,28 @@ Meanwhile the things you *can* control precisely — blocking, motion, timing, f
 
 ## The idea
 
-**Perform the shot instead of describing it.** Grab a rough reference take on your phone, and Understudy extracts the parts a prompt can't carry — **pose, depth, and edges, frame by frame** — pairs them with a director-set focus plan and cinematography, and exports a clean package a controllable video model *follows*.
+**Perform the shot instead of describing it.** Grab a rough reference take on your phone, and Understudy extracts the parts a prompt can't carry — **pose, depth, and a rough scene layout, frame by frame** — pairs them with a director-set focus plan and cinematography, and exports a clean package a controllable video model *follows*.
 
 > **Your footage carries the blocking and motion. You keep full control of the look.**
 
-The background you filmed is just a placeholder, so Understudy can isolate the performer and hand the rest to the AI — keep the person, regenerate the world around them.
+The background you filmed is just a placeholder: Understudy keeps the blocking and a coarse spatial layout, and the AI regenerates the whole look from your prompt.
 
 Drop the package into a ControlNet-style pipeline (ComfyUI **Wan Fun-Control** / **VACE** / **LTX-2**) or a commercial platform, and the generation obeys your take.
 
 ## Features
 
-### 🎯 Extract motion, depth & contour signals
-Decode the take once and pull three control channels per frame — OpenPose-style **pose** skeletons, relative **depth**, and **canny** edges — with a synced side-by-side preview. These are exactly the guidance layers controllable video models understand.
+### 🎯 Extract the signals a prompt throws away — then block out the scene
+A text box can't hold where people stand, how they move, or what's in frame. Understudy decodes your take once and pulls three control channels per frame — OpenPose-style **pose**, relative **depth**, and a selective **layout** blockout — in a synced side-by-side preview. The detector blocks out the cinematic subjects (people, vehicles, animals, props) on a minimal ground/sky backdrop; keep the ones that matter, drop the rest, and **lasso in** anything it missed — a crowd, a building, water — with a label. The blockout says *where* things sit; the prompt says *what* they are.
 
-<p align="center"><img src="docs/feature-signals.png" alt="Pose / depth / canny extraction with split preview" width="820"></p>
+<p align="center"><img src="docs/feature-signals.png" alt="Pose / depth / layout extraction with the subject-curation panel" width="820"></p>
 
-### 🧍 Isolate the subject, drop the background
-Full-frame edges lock your placeholder background into the result — the opposite of what you want. Understudy segments the **person** per frame, so you can scope canny/depth to the subject and export a **matte** that tells the AI *"keep what's inside, regenerate everything outside."* Perfect for VACE-style background replacement.
+### 🔎 Direct the focus and zoom
+Text can't say *where* the lens is focused, or when it racks. Click a point to lock the focal plane onto that depth, keyframe a **rack focus** across the shot, or flip on **follow-subject** so focus tracks the performer automatically as they move. Lay down **zoom / focal-length** segments too — they scale every control signal on export. Understudy renders the depth-of-field straight from the depth map, so the intent is baked into the signals, not just described.
 
-<p align="center"><img src="docs/feature-subject.png" alt="Rough take → subject matte → person-only control signal" width="820"></p>
+<p align="center"><img src="docs/feature-lens.png" alt="Click-to-focus rack focus and zoom, rendered from the depth map" width="820"></p>
 
-### 🔎 Set the focus — or let it follow the performer
-Text can't say *where* the lens is focused. Click a point to lock the focal plane onto that depth, keyframe a rack focus, or flip on **follow-subject** so focus tracks the person automatically as they move. Understudy renders the depth-of-field straight from the depth map, so the intent is baked into the signals.
-
-<p align="center"><img src="docs/feature-lens.png" alt="Click-to-focus rack focus rendered from the depth map" width="820"></p>
-
-### 📝 Compose the shot prompt
-Pick shot size, angle, movement, aperture, lighting, time of day and color grade from a cinematographer's vocabulary. Understudy assembles a clean positive/negative prompt in real time — including your focus phrasing — so the words match the signals you're exporting.
+### 📝 Compose a prompt that matches the signals
+Perfect signals still need words that agree with them — and hand-writing a cinematographer's prompt is fiddly. Pick shot size, angle, movement, aperture, **shutter**, lighting, time of day and color grade from a curated vocabulary; Understudy assembles a clean positive/negative prompt in real time — folding in your lens phrasing and the subjects you drew — so the text never drifts from what you're exporting.
 
 <p align="center"><img src="docs/feature-prompt.png" alt="Cinematography controls with a live prompt preview" width="820"></p>
 
@@ -58,7 +53,7 @@ Pick shot size, angle, movement, aperture, lighting, time of day and color grade
 
 A film holds many shots; each shot runs a six-step wizard:
 
-**Upload** → **Extract** (pose / depth / canny / subject) → **Preview & Annotate** → **Focus & Zoom** → **Cinematography** → **Export**
+**Upload** → **Extract** (pose / depth / layout) → **Preview & Annotate** → **Focus & Zoom** → **Cinematography** → **Export**
 
 Organize a whole short by scene and version, duplicate a shot as a new take (reusing its extraction), and lay the sequence out on a spatial whiteboard.
 
@@ -90,12 +85,11 @@ Browser / console fallbacks: `scripts\run.ps1` · `scripts\dev.ps1` (Windows) an
 `<Film>_S<scene>_<shot>_V<version>_<timestamp>.zip`:
 
 - `prompt.txt` / `prompt_negative.txt` — the composed prompts, ready to paste
-- `pose/ depth/ canny/` — control-signal PNG sequences + `pose/keypoints.json` skeleton coordinates
-- `subject/` — the person matte (white = person), for background replacement; channels can be scoped to the subject
+- `pose/ depth/` — control-signal PNG sequences + `pose/keypoints.json` skeleton coordinates
 - `focus/` + `video/focus_preview.mp4` — the rendered depth-of-field / rack focus (when set)
 - `video/` — the same channels as H.264 mp4 (for web upload)
 - `frames/` — downsampled source frames (VACE reference / first-frame)
-- `masks/` — background-edit masks (two resolutions) + edit-intent JSON
+- `layout/ blockout/` — scene-layout blocks (ADE20K palette for ControlNet-Seg, plus a grouped-color depth-shaded blockout), including director-drawn lasso subjects — their labels also join the prompt
 - `metadata.json` + a bilingual `README.txt` usage guide
 
 ## Tech stack
@@ -107,8 +101,7 @@ Browser / console fallbacks: `scripts\run.ps1` · `scripts\dev.ps1` (Windows) an
 | Desktop | pywebview → WebView2 (Windows) / WKWebView (macOS), single process |
 | Pose | rtmlib (RTMPose ONNX, OpenPose-style skeletons) |
 | Depth | Depth Anything V2 Small (ONNX) |
-| Subject | U²-Net human segmentation (ONNX) |
-| Canny | OpenCV |
+| Layout | TopFormer sky/ground segmentation + YOLOX subject detector (ONNX) |
 | Inference | ONNX Runtime — CPU everywhere; DirectML (Windows) / CoreML (macOS) optional |
 
 ## Project layout
@@ -128,10 +121,10 @@ models/     model cache (git-ignored)
 .venv\Scripts\python.exe -m pytest backend\tests -q
 ```
 
-The prompt builder is mirrored between backend and frontend so the live preview matches the exported prompt exactly; unit tests guard that parity, the lens/focus math, the subject-mask compositing, and the cross-platform inference-backend selection.
+The prompt builder is mirrored between backend and frontend so the live preview matches the exported prompt exactly; unit tests guard that parity, the lens/focus math, the layout blockout rendering, and the cross-platform inference-backend selection.
 
 ## License & credits
 
 Licensed under the **Apache License 2.0** — see [LICENSE](LICENSE). © 2026 Ryan Yan.
 
-Built on the work of others; see [NOTICE](NOTICE) for third-party models, libraries, and demo footage attribution. In short: pose from **RTMPose / rtmlib**, depth from **Depth Anything V2**, subject matte from **U²-Net**, inference via **ONNX Runtime**, and demo control signals derived from short public sample clips (Pexels · OpenCV) — original videos are not redistributed.
+Built on the work of others; see [NOTICE](NOTICE) for third-party models, libraries, and demo footage attribution. In short: pose from **RTMPose / rtmlib**, depth from **Depth Anything V2**, scene layout from **TopFormer** + **YOLOX**, inference via **ONNX Runtime**, and demo control signals derived from short public sample clips (Pexels · OpenCV) — original videos are not redistributed.

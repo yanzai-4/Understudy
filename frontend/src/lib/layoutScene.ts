@@ -25,8 +25,22 @@ export interface LayoutSceneJson {
   instances: SceneInstance[]
 }
 
+export interface ManualSubject {
+  id: string // 'm1', 'm2', … (namespaced vs detected numeric ids)
+  group: string // building | props | vehicle | person | animal
+  label: string
+  polygon: [number, number][] // normalized 0-1, closed region
+}
+
 const SHADE_MIN = 0.55
 const SHADE_SPAN = 0.45
+const MANUAL_DEPTH: Record<string, number> = { building: 0.2 }
+const MANUAL_DEPTH_DEFAULT = 0.5
+
+export function groupReprCls(asset: Ade20kAsset, group: string): number | null {
+  const idx = asset.groups.indexOf(group)
+  return idx >= 0 ? idx : null
+}
 
 function classColor(
   asset: Ade20kAsset,
@@ -65,8 +79,9 @@ export function drawScene(
   frameIndex: number,
   palette: 'ade' | 'blockout',
   disabledGroups: Set<string>,
-  disabledInstances: Set<number>,
+  disabledInstances: Set<number | string>,
   disabledBackdrop: Set<string> = new Set(),
+  manualSubjects: ManualSubject[] = [],
 ) {
   const [w, h] = scene.size
   const fr = scene.frames[Math.min(frameIndex, scene.frames.length - 1)]
@@ -112,18 +127,42 @@ export function drawScene(
     ctx.fill(groundPath)
   }
 
-  // scenery (nature) behind everything else, then far → near
-  const active = scene.instances
-    .filter((inst) => !disabledInstances.has(inst.id) && !disabledGroups.has(inst.group))
-    .map((inst) => ({ inst, entry: inst.frames[String(frameIndex)] }))
-    .filter((p): p is { inst: SceneInstance; entry: number[] } => Boolean(p.entry))
-    .sort(
-      (a, b) =>
-        Number(a.inst.group !== 'nature') - Number(b.inst.group !== 'nature') ||
-        a.entry[4] - b.entry[4],
-    )
+  // scenery (nature) behind everything else, then far → near. Manual subjects
+  // join the same ordering via a synthetic per-group depth.
+  type Renderable =
+    | { kind: 'inst'; group: string; d: number; inst: SceneInstance; entry: number[] }
+    | { kind: 'poly'; group: string; d: number; subj: ManualSubject }
 
-  for (const { inst, entry } of active) {
+  const active: Renderable[] = []
+  for (const inst of scene.instances) {
+    if (disabledInstances.has(inst.id) || disabledGroups.has(inst.group)) continue
+    const entry = inst.frames[String(frameIndex)]
+    if (entry) active.push({ kind: 'inst', group: inst.group, d: entry[4], inst, entry })
+  }
+  for (const subj of manualSubjects) {
+    if (disabledInstances.has(subj.id) || disabledGroups.has(subj.group)) continue
+    active.push({ kind: 'poly', group: subj.group, d: MANUAL_DEPTH[subj.group] ?? MANUAL_DEPTH_DEFAULT, subj })
+  }
+  active.sort(
+    (a, b) => Number(a.group !== 'nature') - Number(b.group !== 'nature') || a.d - b.d,
+  )
+
+  for (const r of active) {
+    if (r.kind === 'poly') {
+      const cls = groupReprCls(asset, r.group)
+      const base = classColor(asset, cls, palette, r.group)
+      const f = palette === 'blockout' ? SHADE_MIN + SHADE_SPAN * r.d : 1
+      const [w0, h0] = scene.size
+      ctx.beginPath()
+      r.subj.polygon.forEach(([px, py], i) =>
+        i === 0 ? ctx.moveTo(px * w0, py * h0) : ctx.lineTo(px * w0, py * h0),
+      )
+      ctx.closePath()
+      ctx.fillStyle = css(base, f)
+      ctx.fill()
+      continue
+    }
+    const { inst, entry } = r
     const [x, y, bw, bh, d] = entry
     const base = classColor(asset, inst.cls, palette, inst.group)
     const radius =

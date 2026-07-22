@@ -680,6 +680,25 @@ def _class_color(meta: dict, cls: int | None, palette: str, fallback_group: str)
     return _bgr(meta["blockout_palette"].get(group, meta["blockout_palette"][fallback_group]))
 
 
+MANUAL_DEPTH = {"building": 0.2}  # buildings sit far; everything else mid
+MANUAL_DEPTH_DEFAULT = 0.5
+
+
+def group_repr_cls(meta: dict, group: str) -> int | None:
+    """First ADE class index whose blockout group == `group` — gives manual
+    subjects an official-palette color for the 'ade' render."""
+    for idx, g in enumerate(meta["groups"]):
+        if g == group:
+            return idx
+    return None
+
+
+def _fill_poly(img: np.ndarray, polygon: list, color) -> None:
+    h, w = img.shape[:2]
+    pts = np.array([[round(x * w), round(y * h)] for x, y in polygon], np.int32)
+    cv2.fillPoly(img, [pts], color)
+
+
 def _fill_round_rect(img: np.ndarray, box: list[float], color, radius_frac: float) -> None:
     x, y, w, h = [int(round(v)) for v in box]
     r = max(1, int(min(w, h) * radius_frac))
@@ -708,8 +727,9 @@ def render_frame(
     frame_index: int,
     palette: str = "blockout",
     disabled_groups: set[str] | None = None,
-    disabled_instances: set[int] | None = None,
+    disabled_instances: set | None = None,
     disabled_backdrop: set[str] | None = None,
+    manual_subjects: list[dict] | None = None,
 ) -> np.ndarray:
     """Compose backdrop + enabled instance primitives. `palette` is 'ade'
     (exact ControlNet-Seg colors, flat) or 'blockout' (grouped colors, ground
@@ -721,6 +741,7 @@ def render_frame(
     disabled_groups = disabled_groups or set()
     disabled_instances = disabled_instances or set()
     disabled_backdrop = disabled_backdrop or set()
+    manual_subjects = manual_subjects or []
     w, h = scene["size"]
     fr = scene["frames"][min(frame_index, len(scene["frames"]) - 1)]
 
@@ -747,36 +768,50 @@ def render_frame(
         else:
             img[below] = bottom_color
 
-    # scenery (nature) sits behind everything else; then far → near
-    active = []
+    # scenery (nature) sits behind everything else; then far → near. Manual
+    # subjects join the same ordering via a synthetic per-group depth.
+    active: list[tuple] = []
     for inst in scene["instances"]:
         if inst["id"] in disabled_instances or inst["group"] in disabled_groups:
             continue
         entry = inst["frames"].get(str(frame_index))
         if entry:
-            active.append((inst, entry))
-    active.sort(key=lambda pair: (pair[0]["group"] != "nature", pair[1][4]))
+            active.append(("inst", inst["group"], entry[4], inst, entry))
+    for subj in manual_subjects:
+        if subj["id"] in disabled_instances or subj["group"] in disabled_groups:
+            continue
+        d = MANUAL_DEPTH.get(subj["group"], MANUAL_DEPTH_DEFAULT)
+        active.append(("poly", subj["group"], d, subj, None))
+    active.sort(key=lambda r: (r[1] != "nature", r[2]))
 
     img = np.ascontiguousarray(img)
-    for inst, (x, y, bw, bh, d) in active:
-        color = _class_color(meta, inst["cls"], palette, inst["group"])
+    for kind, group, d, obj, entry in active:
+        if kind == "poly":
+            cls = group_repr_cls(meta, group)
+            color = _class_color(meta, cls, palette, group)
+            if palette == "blockout":
+                color = _shade(color, SHADE_MIN + SHADE_SPAN * float(d))
+            _fill_poly(img, obj["polygon"], color)
+            continue
+        x, y, bw, bh, _dd = entry
+        color = _class_color(meta, obj["cls"], palette, obj["group"])
         if palette == "blockout":
             color = _shade(color, SHADE_MIN + SHADE_SPAN * float(d))
             border = _shade(color, 0.7)
             box = [x, y, bw, bh]
-            if inst["group"] == "person":
+            if obj["group"] == "person":
                 _fill_capsule(img, box, border)
                 _fill_capsule(img, [x + 2, y + 2, bw - 4, bh - 4] if bw > 8 and bh > 8 else box, color)
             else:
-                rf = {"building": 0.06, "nature": 0.35}.get(inst["group"], 0.15)
+                rf = {"building": 0.06, "nature": 0.35}.get(obj["group"], 0.15)
                 _fill_round_rect(img, box, border, rf)
                 if bw > 8 and bh > 8:
                     _fill_round_rect(img, [x + 2, y + 2, bw - 4, bh - 4], color, rf)
         else:
-            if inst["group"] == "person":
+            if obj["group"] == "person":
                 _fill_capsule(img, [x, y, bw, bh], color)
             else:
-                rf = {"building": 0.06, "nature": 0.35}.get(inst["group"], 0.15)
+                rf = {"building": 0.06, "nature": 0.35}.get(obj["group"], 0.15)
                 _fill_round_rect(img, [x, y, bw, bh], color, rf)
     return img
 
