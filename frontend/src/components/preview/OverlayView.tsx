@@ -33,15 +33,6 @@ export default function OverlayView({ shot, index, channels, depthOpacity, child
           style={{ opacity: depthOpacity }}
         />
       )}
-      {channels.includes('canny') && (
-        <img
-          src={frameUrl(shot, 'canny', index)}
-          alt=""
-          draggable={false}
-          className="pointer-events-none absolute inset-0 h-full w-full rounded-lg"
-          style={{ mixBlendMode: 'screen', opacity: 0.85 }}
-        />
-      )}
       {channels.includes('pose') && (
         <img
           src={frameUrl(shot, 'pose', index)}

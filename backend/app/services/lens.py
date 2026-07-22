@@ -1,12 +1,21 @@
-"""Lens control: focus (rack-focus over the depth map) and zoom/focal-length
-keyframes.
+"""Lens control: focus (rack-focus over the depth map) and zoom/focal-length,
+both expressed as timeline *segments*.
 
-- Focus: per-frame focal plane d0 interpolated from keyframes; each pixel's
+A segment is a frame range [start, end] holding one steady value. Inside a
+segment the value is held; in a gap between two segments it eases from one to
+the next (the gap length = how slow the rack is); two touching segments
+(a.end == b.start) share a single switch frame ("交汇点"). Before the first /
+after the last segment the value is held flat. Each lane allows up to 3
+segments (SEGMENT_CAP).
+
+- Focus: per-frame focal plane d0 from the focus segments; each pixel's
   blur = max_blur * clip(|depth - d0| / falloff, 0, 1). Rendered as a
   depth-of-field preview (dof/) plus a focus map (focus/, white = sharp) that
-  downstream ControlNet-style workflows can consume.
-- Zoom: keyframes carry focal-length choices (e.g. 35mm → 85mm); the crop
-  scale at any frame is focal/min_focal, so the widest keyframe shows the full
+  downstream ControlNet-style workflows can consume. `follow_subject` is an
+  exclusive mode: when on, segments are ignored and focus auto-tracks the
+  performer (from pose) for the whole shot.
+- Zoom: segments carry focal-length choices (e.g. 35mm → 85mm); the crop
+  scale at any frame is focal/min_focal, so the widest value shows the full
   frame. Applied to every control channel at export time.
 
 The phrase logic here is mirrored in frontend/src/lib/lensPhrase.ts — keep
@@ -27,6 +36,10 @@ from app.services.video_io import imwrite_unicode
 log = logging.getLogger(__name__)
 
 BLUR_LEVELS = 5
+SEGMENT_CAP = 3  # max segments per lane (focus, zoom)
+
+FOCUS_SEG_DEFAULT: dict = {"start": 0, "end": 0, "depth": 0.5, "label": ""}
+ZOOM_SEG_DEFAULT: dict = {"start": 0, "end": 0, "focal": "50mm", "cx": 0.5, "cy": 0.5}
 
 DEFAULT_LENS: dict = {
     "focus": {
@@ -34,12 +47,50 @@ DEFAULT_LENS: dict = {
         "max_blur": 12,
         "falloff": 0.35,
         "easing": "smooth",
-        "follow_subject": False,  # focal plane auto-tracks the person matte
-        "keyframes": [],
+        "follow_subject": False,  # exclusive: auto-track the person (from pose)
+        "segments": [],
     },
-    "zoom": {"enabled": False, "keyframes": []},
+    "zoom": {"enabled": False, "segments": []},
     "focal": None,
 }
+
+
+def _clean_segments(raw: list | None, defaults: dict) -> list[dict]:
+    """Coerce, sort and de-overlap segments; cap at SEGMENT_CAP.
+
+    Each segment keeps only the known keys; start/end are ints with start<=end,
+    and every start is clipped up to the previous segment's end so segments
+    never overlap (equal edges = a 交汇点)."""
+    segs: list[dict] = []
+    for s in raw or []:
+        if not isinstance(s, dict):
+            continue
+        seg = {k: (s[k] if k in s else defaults[k]) for k in defaults}
+        seg["start"] = int(seg["start"])
+        seg["end"] = int(seg["end"])
+        if seg["end"] < seg["start"]:
+            seg["start"], seg["end"] = seg["end"], seg["start"]
+        segs.append(seg)
+    segs.sort(key=lambda s: (s["start"], s["end"]))
+    prev_end: int | None = None
+    for seg in segs:
+        if prev_end is not None and seg["start"] < prev_end:
+            seg["start"] = prev_end
+            if seg["end"] < seg["start"]:
+                seg["end"] = seg["start"]
+        prev_end = seg["end"]
+    return segs[:SEGMENT_CAP]
+
+
+def _segments_from(lane: dict, defaults: dict) -> list[dict]:
+    """Read a lane's segments, migrating legacy `keyframes` if needed."""
+    if lane.get("segments") is not None:
+        return _clean_segments(lane["segments"], defaults)
+    legacy = lane.get("keyframes")
+    if legacy:  # each old keyframe → a zero-width segment at its frame
+        migrated = [{**k, "start": k.get("frame", 0), "end": k.get("frame", 0)} for k in legacy]
+        return _clean_segments(migrated, defaults)
+    return []
 
 
 def normalize_lens(data: dict | None) -> dict:
@@ -47,23 +98,25 @@ def normalize_lens(data: dict | None) -> dict:
     data = data or {}
     focus = {**DEFAULT_LENS["focus"], **(data.get("focus") or {})}
     zoom = {**DEFAULT_LENS["zoom"], **(data.get("zoom") or {})}
-    focus["keyframes"] = sorted(focus.get("keyframes") or [], key=lambda k: k["frame"])
-    zoom["keyframes"] = sorted(zoom.get("keyframes") or [], key=lambda k: k["frame"])
+    focus["segments"] = _segments_from(data.get("focus") or {}, FOCUS_SEG_DEFAULT)
+    zoom["segments"] = _segments_from(data.get("zoom") or {}, ZOOM_SEG_DEFAULT)
+    focus.pop("keyframes", None)
+    zoom.pop("keyframes", None)
     return {"focus": focus, "zoom": zoom, "focal": data.get("focal")}
 
 
 def focus_is_active(focus: dict) -> bool:
-    """Focus produces output if it has keyframes or is set to follow the subject."""
-    return bool(focus["enabled"] and (focus["keyframes"] or focus.get("follow_subject")))
+    """Focus produces output if it has segments or is set to follow the subject."""
+    return bool(focus["enabled"] and (focus["segments"] or focus.get("follow_subject")))
 
 
 def lens_is_active(data: dict) -> bool:
     lens = normalize_lens(data)
-    zoom_on = lens["zoom"]["enabled"] and len(lens["zoom"]["keyframes"]) > 0
+    zoom_on = lens["zoom"]["enabled"] and len(lens["zoom"]["segments"]) > 0
     return focus_is_active(lens["focus"]) or zoom_on or bool(lens["focal"])
 
 
-# ---------- keyframe interpolation ----------
+# ---------- segment interpolation ----------
 
 
 def _ease(t: float, easing: str) -> float:
@@ -72,54 +125,81 @@ def _ease(t: float, easing: str) -> float:
     return t
 
 
-def interp_keyframes(keyframes: list[dict], frame: int, field: str, easing: str = "linear") -> float:
-    """Value of `field` at `frame`: flat extrapolation outside, eased between."""
-    if not keyframes:
-        raise ValueError("no keyframes")
-    if frame <= keyframes[0]["frame"]:
-        return float(keyframes[0][field])
-    if frame >= keyframes[-1]["frame"]:
-        return float(keyframes[-1][field])
-    for a, b in zip(keyframes, keyframes[1:]):
-        if a["frame"] <= frame <= b["frame"]:
-            span = b["frame"] - a["frame"]
-            t = 0.0 if span == 0 else (frame - a["frame"]) / span
+def segment_value_at(segments: list[dict], frame: int, field: str, easing: str = "smooth") -> float:
+    """Value of `field` at `frame` for a sorted, non-overlapping segment list:
+    held steady inside a segment, eased across a gap between segments, flat
+    outside the first/last. Touching segments switch at their shared frame."""
+    if not segments:
+        raise ValueError("no segments")
+    if frame <= segments[0]["start"]:
+        return float(segments[0][field])
+    if frame >= segments[-1]["end"]:
+        return float(segments[-1][field])
+    for seg in segments:  # inside a segment → steady hold
+        if seg["start"] <= frame <= seg["end"]:
+            return float(seg[field])
+    for a, b in zip(segments, segments[1:]):  # in a gap → ease a→b
+        if a["end"] < frame < b["start"]:
+            span = b["start"] - a["end"]
+            t = 0.0 if span == 0 else (frame - a["end"]) / span
             t = _ease(t, easing)
             return float(a[field]) + (float(b[field]) - float(a[field])) * t
-    return float(keyframes[-1][field])
+    return float(segments[-1][field])
 
 
 # ---------- focus (depth of field) ----------
 
 
+def _within_span(segs: list[dict], frame: int) -> bool:
+    """The effect is confined to the segments' outer span — before the first
+    start / after the last end there is no focus/zoom (sharp, full frame)."""
+    return bool(segs) and segs[0]["start"] <= frame <= segs[-1]["end"]
+
+
 def focal_plane_at(lens: dict, frame: int) -> float | None:
     focus = lens["focus"]
-    if not focus["enabled"] or not focus["keyframes"]:
+    if not focus["enabled"] or not _within_span(focus["segments"], frame):
         return None
-    return interp_keyframes(focus["keyframes"], frame, "depth", focus.get("easing", "smooth"))
+    return segment_value_at(focus["segments"], frame, "depth", focus.get("easing", "smooth"))
 
 
-def subject_focal_plane(shot_dir: Path, frame_index: int, thresh: float = 0.5) -> float | None:
-    """Median depth (0..1) inside the subject matte at this frame — the person's
-    distance, so focus can auto-track them. None if the matte/depth is missing
-    or the person is absent from the frame."""
-    subj = shot_dir / "subject" / f"frame_{frame_index:06d}.png"
+def subject_focal_plane(shot_dir: Path, frame_index: int, score_thr: float = 0.3) -> float | None:
+    """Median depth (0..1) at the person's pose keypoints this frame — their
+    distance, so focus can auto-track them. Sourced from the pose channel
+    (stabler than a matte). None if pose/depth is missing or nobody is present."""
+    import json
+
+    kp_path = shot_dir / "pose" / "keypoints.json"
     depth_path = shot_dir / "depth" / f"frame_{frame_index:06d}.png"
-    if not subj.exists() or not depth_path.exists():
+    if not kp_path.exists() or not depth_path.exists():
         return None
-    mask = cv2.imdecode(np.fromfile(subj, np.uint8), cv2.IMREAD_GRAYSCALE)
+    try:
+        frames = json.loads(kp_path.read_text(encoding="utf-8")).get("frames", [])
+    except (OSError, ValueError):
+        return None
+    entry = next((f for f in frames if f.get("frame") == frame_index), None)
+    if not entry:
+        return None
     depth = cv2.imdecode(np.fromfile(depth_path, np.uint8), cv2.IMREAD_GRAYSCALE)
-    if mask.shape[:2] != depth.shape[:2]:
-        mask = cv2.resize(mask, (depth.shape[1], depth.shape[0]), interpolation=cv2.INTER_LINEAR)
-    sel = mask > int(thresh * 255)
-    if int(sel.sum()) < 20:  # no meaningful subject in this frame
+    h, w = depth.shape[:2]
+    samples: list[int] = []
+    for person in entry.get("people", []):
+        pts = person.get("keypoints", [])
+        scores = person.get("scores", [])
+        for i, (x, y) in enumerate(pts):
+            if (scores[i] if i < len(scores) else 1.0) <= score_thr:
+                continue
+            xi, yi = int(round(x)), int(round(y))
+            if 0 <= xi < w and 0 <= yi < h:
+                samples.append(int(depth[yi, xi]))
+    if len(samples) < 3:
         return None
-    return float(np.median(depth[sel])) / 255.0
+    return float(np.median(samples)) / 255.0
 
 
 def resolve_focal_plane(lens: dict, shot_dir: Path, frame_index: int) -> float | None:
-    """Focal plane for a frame: the subject's depth when following the subject
-    (falling back to keyframes if the person is absent), else keyframe-based."""
+    """Focal plane for a frame: the person's depth (from pose) when following the
+    subject, falling back to the segments if nobody is detected; else segment-based."""
     focus = lens["focus"]
     if focus.get("enabled") and focus.get("follow_subject"):
         d = subject_focal_plane(shot_dir, frame_index)
@@ -168,20 +248,21 @@ def focal_mm(key: str | None) -> int | None:
 
 def zoom_params_at(lens: dict, frame: int) -> tuple[float, float, float] | None:
     """(scale, cx, cy) at `frame`, or None when zoom is inactive.
-    scale = focal/min_focal so the widest keyframe shows the full frame."""
+    scale = focal/min_focal so the widest segment shows the full frame."""
     zoom = lens["zoom"]
-    kfs = zoom["keyframes"]
-    if not zoom["enabled"] or not kfs:
+    segs = zoom["segments"]
+    if not zoom["enabled"] or not _within_span(segs, frame):
         return None
-    mms = [focal_mm(k.get("focal")) or 35 for k in kfs]
+    mms = [focal_mm(s.get("focal")) or 35 for s in segs]
     base = min(mms)
     enriched = [
-        {"frame": k["frame"], "scale": mm / base, "cx": k.get("cx", 0.5), "cy": k.get("cy", 0.5)}
-        for k, mm in zip(kfs, mms)
+        {"start": s["start"], "end": s["end"], "scale": mm / base,
+         "cx": s.get("cx", 0.5), "cy": s.get("cy", 0.5)}
+        for s, mm in zip(segs, mms)
     ]
-    scale = interp_keyframes(enriched, frame, "scale", "smooth")
-    cx = interp_keyframes(enriched, frame, "cx", "smooth")
-    cy = interp_keyframes(enriched, frame, "cy", "smooth")
+    scale = segment_value_at(enriched, frame, "scale", "smooth")
+    cx = segment_value_at(enriched, frame, "cx", "smooth")
+    cy = segment_value_at(enriched, frame, "cy", "smooth")
     return max(1.0, scale), cx, cy
 
 
@@ -218,11 +299,11 @@ def transform_points(points: np.ndarray, w: int, h: int, scale: float, cx: float
 # ---------- prompt phrases (mirror: frontend/src/lib/lensPhrase.ts) ----------
 
 
-def _depth_label(kf: dict) -> str:
-    label = (kf.get("label") or "").strip()
+def _depth_label(seg: dict) -> str:
+    label = (seg.get("label") or "").strip()
     if label:
         return label
-    d = float(kf.get("depth", 0.5))
+    d = float(seg.get("depth", 0.5))
     if d >= 0.66:
         return "the foreground subject"
     if d <= 0.33:
@@ -238,18 +319,18 @@ def lens_phrases(data: dict, mappings: dict, camera_move_set: bool) -> list[str]
     focus = lens["focus"]
     if focus["enabled"] and focus.get("follow_subject"):
         phrases.append("focus following the subject, shallow depth of field")
-    elif focus["enabled"] and focus["keyframes"]:
-        kfs = focus["keyframes"]
-        if len(kfs) == 1:
-            phrases.append(f"sharp focus on {_depth_label(kfs[0])}")
+    elif focus["enabled"] and focus["segments"]:
+        segs = focus["segments"]
+        if len(segs) == 1:
+            phrases.append(f"sharp focus on {_depth_label(segs[0])}")
         else:
-            phrases.append(f"rack focus from {_depth_label(kfs[0])} to {_depth_label(kfs[-1])}")
+            phrases.append(f"rack focus from {_depth_label(segs[0])} to {_depth_label(segs[-1])}")
 
     zoom = lens["zoom"]
     focal_options = {o["key"]: o["fragment"] for o in mappings.get("focal_lengths", [])}
-    zoom_kfs = zoom["keyframes"] if zoom["enabled"] else []
-    focals = [k.get("focal") for k in zoom_kfs if k.get("focal")]
-    zoom_changes = len(zoom_kfs) >= 2 and len(set(focals)) >= 2
+    zoom_segs = zoom["segments"] if zoom["enabled"] else []
+    focals = [s.get("focal") for s in zoom_segs if s.get("focal")]
+    zoom_changes = len(zoom_segs) >= 2 and len(set(focals)) >= 2
 
     if zoom_changes:
         # explicit camera_move selection wins over the auto zoom phrase
@@ -282,7 +363,7 @@ def run_lens_render(task_id: str, shot_id: str) -> None:
         state = db.get(LensState, shot_id)
         lens = normalize_lens(state.data if state else None)
         if not focus_is_active(lens["focus"]):
-            raise RuntimeError("Focus is off — add keyframes or enable follow-subject")
+            raise RuntimeError("Focus is off — add a focus segment or enable follow-subject")
 
         shot_dir = paths.shot_dir(shot.film_id, shot.id)
         frames = sorted((shot_dir / "frames").glob("frame_*.jpg"))
@@ -309,12 +390,13 @@ def run_lens_render(task_id: str, shot_id: str) -> None:
                 raise RuntimeError("Depth channel missing — extract depth first")
             depth = cv2.imdecode(np.fromfile(depth_path, np.uint8), cv2.IMREAD_GRAYSCALE)
 
+            # Zoom is baked in only at export; the preview stays un-cropped.
+            # Outside the focus span there is no DoF — the frame is left sharp.
             d0 = resolve_focal_plane(lens, shot_dir, i)
-            zoom = zoom_params_at(lens, i)
-            dof, fmap = render_dof(frame, depth, d0 if d0 is not None else 0.5, max_blur, falloff)
-            if zoom:
-                dof = apply_zoom(dof, *zoom)
-                fmap = apply_zoom(fmap, *zoom)
+            if d0 is None:
+                dof, fmap = frame, np.full(depth.shape[:2], 255, np.uint8)
+            else:
+                dof, fmap = render_dof(frame, depth, d0, max_blur, falloff)
             imwrite_unicode(dof_dir / f"frame_{i:06d}.jpg", dof, quality=88)
             imwrite_unicode(focus_dir / f"frame_{i:06d}.png", fmap)
 
@@ -335,7 +417,9 @@ def run_lens_render(task_id: str, shot_id: str) -> None:
 
 
 def render_single_frame(shot_dir: Path, lens: dict, frame_index: int) -> np.ndarray | None:
-    """On-demand preview of one frame with focus + zoom applied."""
+    """On-demand preview of one frame with the depth-of-field applied. Zoom is
+    NOT cropped in here — the preview stays full-frame so the on-image zoom
+    framing/center overlay reads true; the crop is baked in only at export."""
     frame_path = shot_dir / "frames" / f"frame_{frame_index:06d}.jpg"
     if not frame_path.exists():
         return None
@@ -350,7 +434,4 @@ def render_single_frame(shot_dir: Path, lens: dict, frame_index: int) -> np.ndar
             frame, _ = render_dof(
                 frame, depth, d0, float(lens["focus"]["max_blur"]), float(lens["focus"]["falloff"])
             )
-    zoom = zoom_params_at(lens, frame_index)
-    if zoom:
-        frame = apply_zoom(frame, *zoom)
     return frame

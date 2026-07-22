@@ -19,7 +19,7 @@ CHUNK = 4 * 1024 * 1024
 
 def _clear_extraction_products(film_id: str, shot_id: str) -> None:
     base = paths.shot_dir(film_id, shot_id)
-    for sub in ("frames", "pose", "depth", "canny", "masks"):
+    for sub in ("frames", "pose", "depth", "layout", "blockout", "masks"):
         shutil.rmtree(base / sub, ignore_errors=True)
         (base / sub).mkdir(parents=True, exist_ok=True)
 

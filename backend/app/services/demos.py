@@ -3,7 +3,7 @@ with the app. Demos are seeded on first launch and recreated on reset; they can
 be freely deleted otherwise. Titles follow the current UI language.
 
 Each shot points at a pre-extracted asset directory under assets/demos/<asset>/
-(source + frames + pose/depth/canny + extraction.json), so seeding is an instant
+(frames + pose/depth/layout + extraction.json), so seeding is an instant
 file copy — no re-extraction needed.
 """
 

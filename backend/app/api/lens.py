@@ -9,7 +9,13 @@ from app.api.shots import get_shot_or_404
 from app.db import get_db
 from app.models import LensState
 from app.services import paths
-from app.services.lens import DEFAULT_LENS, normalize_lens, render_single_frame, run_lens_render
+from app.services.lens import (
+    DEFAULT_LENS,
+    focus_is_active,
+    normalize_lens,
+    render_single_frame,
+    run_lens_render,
+)
 from app.services.task_registry import registry
 
 router = APIRouter(tags=["lens"])
@@ -64,8 +70,8 @@ def start_lens_render(shot_id: str, background: BackgroundTasks, db: Session = D
     shot = get_shot_or_404(db, shot_id)
     state = db.get(LensState, shot_id)
     lens = normalize_lens(state.data if state else None)
-    if not (lens["focus"]["enabled"] and lens["focus"]["keyframes"]):
-        raise api_error(400, "no_focus", "Add at least one focus keyframe first")
+    if not focus_is_active(lens["focus"]):
+        raise api_error(400, "no_focus", "Add a focus segment or enable follow-subject first")
     if not (paths.shot_dir(shot.film_id, shot.id) / "depth").exists():
         raise api_error(400, "no_depth", "Depth channel required — extract depth first")
     if registry.has_active("lens_render"):

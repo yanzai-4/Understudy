@@ -16,7 +16,7 @@ router = APIRouter(tags=["extraction"])
 
 
 class ExtractRequest(BaseModel):
-    channels: list[str] = ["pose", "depth", "canny"]
+    channels: list[str] = ["pose", "depth", "layout"]
     stride: int | Literal["auto"] = "auto"
     max_size: int = Field(768, ge=256, le=1920)
 

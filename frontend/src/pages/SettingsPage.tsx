@@ -202,28 +202,6 @@ export default function SettingsPage() {
               <option value="fp32">fp32（{t('settings.depthAccurate')}）</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-            {t('settings.cannyLow')}
-            <input
-              type="number"
-              min={1}
-              max={499}
-              className={select}
-              value={settings.canny_low}
-              onChange={(e) => patch({ canny_low: Number(e.target.value) })}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-            {t('settings.cannyHigh')}
-            <input
-              type="number"
-              min={2}
-              max={500}
-              className={select}
-              value={settings.canny_high}
-              onChange={(e) => patch({ canny_high: Number(e.target.value) })}
-            />
-          </label>
         </div>
       </div>
 

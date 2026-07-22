@@ -12,7 +12,7 @@ import { useTaskPolling } from '../../hooks/useTaskPolling'
 import { formatEstimate } from '../../lib/format'
 import Button from '../common/Button'
 
-const CHANNEL_ORDER = ['pose', 'depth', 'canny', 'subject']
+const CHANNEL_ORDER = ['pose', 'depth', 'layout']
 
 interface Props {
   shot: Shot
@@ -74,7 +74,7 @@ export default function StepExtract({ shot, onShotUpdated, onNext }: Props) {
     strideMode === 'auto' ? Math.max(1, Math.ceil(frameCount / 300)) : strideMode
   const outFrames = Math.ceil(frameCount / Math.max(1, effectiveStride))
   // Measured CPU throughput on a 14-core laptop: ~4 s/frame with pose+depth.
-  const heavy = ['pose', 'depth', 'subject'].some((c) => channels.includes(c))
+  const heavy = ['pose', 'depth', 'layout'].some((c) => channels.includes(c))
   const estimate = heavy ? Math.round(outFrames * 4) : Math.round(outFrames * 0.05)
 
   const alreadyExtracted = shot.status === 'extracted' || shot.status === 'exported'

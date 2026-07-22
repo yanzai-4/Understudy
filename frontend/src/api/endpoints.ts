@@ -186,6 +186,32 @@ export async function lensPreview(shotId: string, frame: number, data: LensData)
 export const startLensRender = (shotId: string) =>
   api.post<{ task_id: string }>(`/api/shots/${shotId}/lens/render`)
 
+// ---------- Layout channel ----------
+
+export interface Ade20kAsset {
+  classes: string[]
+  palette: number[][] // official ADE20K RGB per class (ControlNet-Seg standard)
+  groups: string[] // per-class blockout group
+  group_order: string[]
+  blockout_palette: Record<string, number[]>
+  person_index: number
+}
+
+export interface LayoutStateData {
+  disabled_groups: string[]
+  disabled_instances: number[]
+  disabled_backdrop: string[] // 'top' | 'bottom' — disabled planes render black
+}
+
+let adeAssetCache: Promise<Ade20kAsset> | null = null
+export const getAde20k = () => (adeAssetCache ??= api.get<Ade20kAsset>('/api/layout/ade20k'))
+
+export const getLayoutState = (shotId: string) =>
+  api.get<LayoutStateData>(`/api/shots/${shotId}/layout`)
+
+export const putLayoutState = (shotId: string, data: LayoutStateData) =>
+  api.put<LayoutStateData>(`/api/shots/${shotId}/layout`, { data })
+
 // ---------- Exports ----------
 
 export interface ExportRecordOut {
@@ -204,7 +230,6 @@ export const startExport = (
     channels: string[] | null
     masks: boolean
     control_videos: boolean
-    scope?: Record<string, 'whole' | 'subject'>
   },
 ) => api.post<{ task_id: string }>(`/api/shots/${shotId}/export`, { include })
 

@@ -19,6 +19,13 @@ RTMPose / RTMDet, via rtmlib — body detection + pose estimation
     License: Apache-2.0
     Pose weights are fetched into the rtmlib cache on first use.
 
+TopFormer (ADE20K, 512) — semantic segmentation for the layout blockout
+    Architecture: TopFormer (https://github.com/hustvl/TopFormer), trained on
+    ADE20K (MIT Scene Parsing Benchmark). ONNX weights self-hosted on the
+    project's GitHub releases (models-v1).
+    License: Apache-2.0
+    Downloaded at install/first-run into models/ (not redistributed here).
+
 ================================================================================
 Libraries
 ================================================================================
@@ -53,7 +60,7 @@ Demo footage
 ================================================================================
 
 The bundled demo projects (backend/app/assets/demos/) ship only DERIVED control
-signals — extracted frames, pose, depth and canny sequences plus thumbnails.
+signals — extracted frames, pose, depth and layout sequences plus thumbnails.
 The original source videos are NOT redistributed with this project.
 
 Those signals were derived from short, publicly available sample clips:

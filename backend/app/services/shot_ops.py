@@ -7,11 +7,11 @@ import shutil
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import BackgroundEdit, CameraParams, LensState, Shot
+from app.models import BackgroundEdit, CameraParams, LayoutState, LensState, Shot
 from app.services import paths
 from app.services.mask_renderer import render_masks
 
-COPY_SUBDIRS = ["source", "thumbnail", "frames", "pose", "depth", "canny"]
+COPY_SUBDIRS = ["source", "thumbnail", "frames", "pose", "depth", "layout", "blockout"]
 CAMERA_FIELDS = [
     "shot_size",
     "camera_angle",
@@ -81,6 +81,10 @@ def duplicate_shot(db: Session, source: Shot, as_new_version: bool) -> Shot:
     source_lens = db.get(LensState, source.id)
     if source_lens is not None:
         db.add(LensState(shot_id=clone.id, data=source_lens.data))
+
+    source_layout = db.get(LayoutState, source.id)
+    if source_layout is not None:
+        db.add(LayoutState(shot_id=clone.id, data=source_layout.data))
 
     # Copy assets (everything except exports; masks are re-rendered for new edit ids).
     src_dir = paths.shot_dir(source.film_id, source.id)

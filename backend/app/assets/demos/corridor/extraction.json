@@ -11,8 +11,7 @@
   "channels": [
     "pose",
     "depth",
-    "canny",
-    "subject"
+    "layout"
   ],
   "index_map": [
     {
@@ -175,9 +174,16 @@
       "model": "depth-anything-v2-small (model)",
       "normalization": "per_frame"
     },
-    "canny": {
-      "low_threshold": 100,
-      "high_threshold": 200
+    "layout": {
+      "model": "topformer_ade20k",
+      "mode": "scene",
+      "instances": {
+        "building": 1,
+        "props": 3,
+        "person": 1
+      },
+      "top_class": 5,
+      "bottom_class": 3
     }
   },
   "source": {

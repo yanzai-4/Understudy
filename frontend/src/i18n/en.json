@@ -125,18 +125,16 @@
     }
   },
   "lens": {
-    "hintBar": "Switch Focus/Zoom at the top of the right panel. In Focus mode, scrub to a frame and click the frame to set the focus point; in Zoom mode, click to set the center and pick a focal length. Each point shows as a diamond on the timeline, and multiple points interpolate into a rack focus / zoom.",
-    "mode": {
-      "focus": "Focus",
-      "zoom": "Zoom"
-    },
+    "hintBar": "Draw a segment on the focus/zoom track: within a segment the focal plane / focal length is held steady, and the gaps between segments ease from one to the next (rack focus / zoom). Drag a segment's edges to change start/end; where two segments meet, the diamond is the 交汇点 — drag it to move both at once. Select a segment, then click the frame to set its focal plane or zoom center.",
     "source": {
       "original": "Original",
       "live": "Live preview",
       "rendered": "Rendered"
     },
-    "clickHintFocus": "Click the frame to set focus at that point's depth (current frame)",
-    "clickHintZoom": "Click the frame to set the zoom center for the current frame",
+    "clickHintFocus": "Click the frame to set the selected focus segment's focal plane (depth there)",
+    "clickHintZoom": "Click the frame to set the selected zoom segment's center",
+    "followActiveHint": "Follow-subject is on — the whole shot auto-tracks the performer (no manual segments)",
+    "selectSegmentFirst": "Select a segment first, then click the frame to set its value",
     "noDepth": "Focus control needs the depth channel — extract depth first",
     "focusTitle": "Focus (rack focus)",
     "zoomTitle": "Zoom / focal length",
@@ -144,20 +142,22 @@
     "zoneNear": "near",
     "zoneMid": "mid",
     "zoneFar": "far",
-    "laneFocus": "Focus keyframes",
-    "laneZoom": "Zoom keyframes",
+    "laneFocus": "Focus",
+    "laneZoom": "Zoom",
+    "addSegment": "Segment",
+    "trackHint": "Drag on empty track to add a segment · drag edges for start/end · drag the 交汇点 diamond to move both neighbours · max 3 per track",
     "followSubject": "Focus follows subject",
-    "followSubjectHint": "The focal plane auto-tracks the person each frame (median depth inside the matte), so focus follows them as they move nearer/farther. Needs the Subject channel.",
-    "followSubjectNeed": "Extract the Subject channel first to enable this.",
-    "noFocusKfs": "Scrub to a frame, then click where you want the focus",
-    "noZoomKfs": "Switch to Zoom mode, click to set the center and pick a focal length",
+    "followSubjectHint": "The focal plane auto-tracks the person each frame (median depth at their pose keypoints), so focus follows them as they move (disables manual focus segments while on).",
+    "followSubjectNeed": "Extract both the Pose and Depth channels first to enable this.",
+    "noFocusSegs": "Drag on the focus track below to add a segment, or click “+ Segment”",
+    "noZoomSegs": "Drag on the zoom track below to add a segment, or click “+ Segment”",
     "labelPlaceholder": "Subject name (goes into the prompt)",
     "maxBlur": "Blur strength",
     "falloff": "Falloff range",
     "easing": "Easing",
     "easeSmooth": "Smooth",
     "easeLinear": "Linear",
-    "zoomHint": "Zoom scales every control signal (pose/depth/canny) at export and enters the prompt.",
+    "zoomHint": "Zoom scales every control signal (pose/depth/layout) at export and enters the prompt.",
     "staticFocal": "Fixed focal length",
     "promptWillInclude": "Lens phrases that will enter the prompt",
     "noPhrases": "None yet — enable focus or pick a focal length",
@@ -169,8 +169,7 @@
     "channel": {
       "pose": "Pose",
       "depth": "Depth",
-      "canny": "Canny",
-      "subject": "Subject"
+      "layout": "Layout"
     },
     "unavailable": "unavailable",
     "stride": "Frame sampling",
@@ -196,10 +195,6 @@
     "readyDetail": "Extracted {{channels}}, {{frames}} frames. Pick what to include, then package below.",
     "contents": "Package contents",
     "channelSeq": "{{ch}} PNG sequence",
-    "scope": {
-      "whole": "Full frame",
-      "subject": "Subject"
-    },
     "controlVideos": "Control-signal mp4 videos (for web-based platforms)",
     "sourceVideo": "Original source video",
     "masksAuto": "Background edit masks + descriptions ({{count}} annotations, automatic)",
@@ -251,6 +246,29 @@
     "confirmBtn": "Reset permanently",
     "working": "Resetting…"
   },
+  "layout": {
+    "palette": {
+      "blockout": "Blockout",
+      "ade": "Standard"
+    },
+    "toggleHint": "Toggle the whole group: removed blocks are backfilled by the backdrop",
+    "instanceHint": "Toggle this one object: the backdrop fills in behind it — never a hole",
+    "backdropHint": "Toggle a backdrop plane: disabled area renders black (unconstrained) — not backfilled",
+    "backdrop": {
+      "top": "Sky / top",
+      "bottom": "Ground"
+    },
+    "group": {
+      "person": "Person",
+      "vehicle": "Vehicles",
+      "building": "Buildings",
+      "ground": "Ground",
+      "sky": "Sky",
+      "nature": "Nature",
+      "water": "Water",
+      "props": "Props"
+    }
+  },
   "preset": {
     "button": "Style preset",
     "title": "Film style preset",
@@ -292,7 +310,7 @@
     "replaceHint": "Drop or click to re-upload",
     "replaceWarning": "Re-uploading replaces the current video and clears the extracted control signals, background annotations and exports; the wizard also returns to step 1.",
     "replaceTitle": "Re-upload video",
-    "replaceConfirm": "Replace the current video? The extracted pose / depth / canny, background annotations and export history will all be removed. This cannot be undone.",
+    "replaceConfirm": "Replace the current video? The extracted pose / depth / layout, background annotations and export history will all be removed. This cannot be undone.",
     "replaceConfirmBtn": "Replace & clear",
     "formats": "MP4 / MOV / AVI / MKV / WebM, up to 2 GB",
     "uploading": "Uploading {{pct}}%",
@@ -315,8 +333,6 @@
     "depthVariant": "Depth model precision",
     "depthFast": "faster",
     "depthAccurate": "more accurate",
-    "cannyLow": "Canny low threshold",
-    "cannyHigh": "Canny high threshold",
     "models": "Model status",
     "modelsHint": "Models download during install and are fetched automatically on first extraction if missing — no manual action needed.",
     "modelAuto": "will auto-download",

@@ -215,10 +215,23 @@ class BoardState(Base):
 
 
 class LensState(Base):
-    """Per-shot lens control: focus keyframes (rack focus over the depth map),
-    zoom/focal-length keyframes, and the static focal choice — one JSON blob."""
+    """Per-shot lens control: focus segments (rack focus over the depth map),
+    zoom/focal-length segments, and the static focal choice — one JSON blob."""
 
     __tablename__ = "lens_states"
+
+    shot_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("shots.id", ondelete="CASCADE"), primary_key=True
+    )
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class LayoutState(Base):
+    """Per-shot layout-channel choices: which blockout groups stay in the
+    exported maps (disabled groups render black = no guidance)."""
+
+    __tablename__ = "layout_states"
 
     shot_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("shots.id", ondelete="CASCADE"), primary_key=True

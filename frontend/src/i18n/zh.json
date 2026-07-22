@@ -125,18 +125,16 @@
     }
   },
   "lens": {
-    "hintBar": "右侧顶部切换「焦点/变焦」模式：焦点模式下拖动滑块到目标帧、点击画面设定焦点；变焦模式下点击画面定中心并选焦段。设定的点会作为菱形标记显示在时间轴上，多个标记之间自动过渡（拉焦/变焦）。",
-    "mode": {
-      "focus": "焦点",
-      "zoom": "变焦"
-    },
+    "hintBar": "在时间轴的焦点/变焦轨道上拖出一个「段」：段内保持一个焦平面/焦段，段之间的空档自动过渡（拉焦/变焦）。拖动段的左右边可改开始/结束；两段相接时中间的菱形是「交汇点」，拖它同时移动两段。选中某段后点击画面即可设定它的焦平面或变焦中心。",
     "source": {
       "original": "原片",
       "live": "实时预览",
       "rendered": "渲染序列"
     },
-    "clickHintFocus": "点击画面 = 在当前帧设置焦点（按该处深度）",
-    "clickHintZoom": "点击画面 = 设置当前帧变焦中心",
+    "clickHintFocus": "点击画面 = 给选中的焦点段设置焦平面（按该处深度）",
+    "clickHintZoom": "点击画面 = 设置选中变焦段的中心",
+    "followActiveHint": "焦点跟随人物已开启，整段视频自动跟焦（无需手动分段）",
+    "selectSegmentFirst": "请先选中一个段，再点击画面设定它的值",
     "noDepth": "焦点控制需要 depth 通道，请先提取深度",
     "focusTitle": "焦点（拉焦）",
     "zoomTitle": "变焦 / 焦段",
@@ -144,20 +142,22 @@
     "zoneNear": "近景",
     "zoneMid": "中景",
     "zoneFar": "远景",
-    "laneFocus": "焦点关键帧",
-    "laneZoom": "变焦关键帧",
+    "laneFocus": "焦点",
+    "laneZoom": "变焦",
+    "addSegment": "段",
+    "trackHint": "在空白处拖出新段 · 拖边改起止 · 拖菱形交汇点同时移动相邻两段 · 每条轨道最多 3 段",
     "followSubject": "焦点跟随人物",
-    "followSubjectHint": "开启后焦平面每帧自动取人物遮罩内的深度中位数，随人物远近自动跟焦（需已提取人物通道）。",
-    "followSubjectNeed": "需在提取步骤勾选「人物 Subject」通道后可用。",
-    "noFocusKfs": "拖动滑块到目标帧，点击画面中想聚焦的位置",
-    "noZoomKfs": "切到「变焦」模式，点击画面设定中心并选择焦段",
+    "followSubjectHint": "开启后焦平面每帧自动取人物骨架关键点处的深度中位数，随人物远近自动跟焦（开启后不能再自定义焦点段）。",
+    "followSubjectNeed": "需在提取步骤同时勾选「姿态 Pose」和「深度 Depth」通道后可用。",
+    "noFocusSegs": "在下方焦点轨道空白处拖出一个段，或点「+ 段」",
+    "noZoomSegs": "在下方变焦轨道空白处拖出一个段，或点「+ 段」",
     "labelPlaceholder": "对象英文名（写入 prompt）",
     "maxBlur": "虚化强度",
     "falloff": "过渡范围",
     "easing": "过渡曲线",
     "easeSmooth": "平滑",
     "easeLinear": "线性",
-    "zoomHint": "变焦会在导出时同步缩放全部控制信号（pose/depth/canny），并写入 prompt。",
+    "zoomHint": "变焦会在导出时同步缩放全部控制信号（pose/depth/layout），并写入 prompt。",
     "staticFocal": "固定焦段",
     "promptWillInclude": "将写入 Prompt 的镜头短语",
     "noPhrases": "暂无（启用焦点或选择焦段后生成）",
@@ -169,8 +169,7 @@
     "channel": {
       "pose": "姿态 Pose",
       "depth": "深度 Depth",
-      "canny": "边缘 Canny",
-      "subject": "人物 Subject"
+      "layout": "布局 Layout"
     },
     "unavailable": "暂不可用",
     "stride": "采样间隔",
@@ -196,10 +195,6 @@
     "readyDetail": "已提取 {{channels}}，共 {{frames}} 帧。勾选内容后点击下方按钮打包。",
     "contents": "导出内容",
     "channelSeq": "{{ch}} PNG 序列",
-    "scope": {
-      "whole": "全画幅",
-      "subject": "只人物"
-    },
     "controlVideos": "控制信号 mp4 视频（便于上传网页版生成平台）",
     "sourceVideo": "原始视频文件",
     "masksAuto": "背景改动遮罩 + 描述（{{count}} 个标注，自动包含）",
@@ -251,6 +246,29 @@
     "confirmBtn": "永久重置",
     "working": "正在重置…"
   },
+  "layout": {
+    "palette": {
+      "blockout": "粗模",
+      "ade": "标准"
+    },
+    "toggleHint": "开/关整组：关闭后该组全部个体从布局中移除，背景自动补全",
+    "instanceHint": "开/关这个个体：移除后由背景补全，不会留洞",
+    "backdropHint": "开/关背景平面：关闭后该区域为黑（不约束，交给 AI），不会被填充",
+    "backdrop": {
+      "top": "天空/顶面",
+      "bottom": "地面"
+    },
+    "group": {
+      "person": "人物",
+      "vehicle": "车辆",
+      "building": "建筑",
+      "ground": "地面",
+      "sky": "天空",
+      "nature": "植被",
+      "water": "水面",
+      "props": "道具"
+    }
+  },
   "preset": {
     "button": "风格预设",
     "title": "作品风格预设",
@@ -292,7 +310,7 @@
     "replaceHint": "拖拽或点击可重新上传",
     "replaceWarning": "重新上传会替换当前视频，并清空已提取的控制信号、背景标注与导出记录，向导也将回到第一步。",
     "replaceTitle": "重新上传视频",
-    "replaceConfirm": "确定要替换当前视频吗？已提取的 pose / depth / canny、背景标注和导出记录都会被清除，此操作不可恢复。",
+    "replaceConfirm": "确定要替换当前视频吗？已提取的 pose / depth / layout、背景标注和导出记录都会被清除，此操作不可恢复。",
     "replaceConfirmBtn": "替换并清空",
     "formats": "支持 MP4 / MOV / AVI / MKV / WebM，最大 2GB",
     "uploading": "上传中 {{pct}}%",
@@ -315,8 +333,6 @@
     "depthVariant": "深度模型精度",
     "depthFast": "更快",
     "depthAccurate": "更准",
-    "cannyLow": "Canny 低阈值",
-    "cannyHigh": "Canny 高阈值",
     "models": "模型状态",
     "modelsHint": "模型在安装时自动下载，缺失时首次提取会自动补齐，无需手动操作。",
     "modelAuto": "将自动下载",

@@ -18,7 +18,6 @@ from app.config import settings
 log = logging.getLogger(__name__)
 
 DEPTH_DIR = "depth_anything_v2"
-SEG_DIR = "u2net_human_seg"
 
 MANAGED_MODELS: dict[str, dict] = {
     "depth_anything_v2_int8": {
@@ -33,13 +32,13 @@ MANAGED_MODELS: dict[str, dict] = {
         "relpath": f"{DEPTH_DIR}/model.onnx",
         "size_mb": 100,
     },
-    # Per-frame human segmentation (U²-Net human-seg, Apache-2.0). Only needed
-    # for the optional "subject" channel; downloaded on first use.
-    "u2net_human_seg": {
-        "name": "U²-Net human segmentation",
-        "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net_human_seg.onnx",
-        "relpath": f"{SEG_DIR}/u2net_human_seg.onnx",
-        "size_mb": 176,
+    # Scene layout segmentation (TopFormer ADE20K, Apache-2.0), for the optional
+    # "layout" channel. Self-hosted as a GitHub release asset for a stable URL.
+    "topformer_ade20k": {
+        "name": "TopFormer scene layout (ADE20K)",
+        "url": "https://github.com/yanzai-4/Understudy/releases/download/models-v1/topformer_ade20k_512.onnx",
+        "relpath": "topformer_ade20k/topformer_ade20k_512.onnx",
+        "size_mb": 12,
     },
 }
 
@@ -74,14 +73,14 @@ def is_ready(key: str) -> bool:
 
 
 def required_keys_for(channels: list[str], depth_variant: str) -> list[str]:
-    """Model keys needed to extract the given channels (canny needs none)."""
+    """Model keys needed to extract the given channels."""
     keys: list[str] = []
     if "pose" in channels:
         keys.append(RTMLIB_KEY)
     if "depth" in channels:
         keys.append(depth_key_for(depth_variant))
-    if "subject" in channels:
-        keys.append("u2net_human_seg")
+    if "layout" in channels:
+        keys.append("topformer_ade20k")
     return keys
 
 

@@ -118,18 +118,24 @@ export interface PromptMappings {
 
 // ---------- lens control ----------
 
-export interface FocusKeyframe {
-  frame: number
+/** A timeline segment holds one steady value over [start, end]; gaps between
+ * segments ease from one value to the next, touching edges = a single switch. */
+export interface FocusSegment {
+  start: number
+  end: number
   depth: number // 0..1, 1 = near (white in the depth map)
   label: string
 }
 
-export interface ZoomKeyframe {
-  frame: number
+export interface ZoomSegment {
+  start: number
+  end: number
   focal: string // focal_lengths option key, e.g. '35mm'
   cx: number
   cy: number
 }
+
+export const SEGMENT_CAP = 3 // max segments per lane (mirror backend lens.py)
 
 export interface LensData {
   focus: {
@@ -137,12 +143,12 @@ export interface LensData {
     max_blur: number
     falloff: number
     easing: 'linear' | 'smooth'
-    follow_subject: boolean
-    keyframes: FocusKeyframe[]
+    follow_subject: boolean // exclusive: when on, segments are ignored
+    segments: FocusSegment[]
   }
   zoom: {
     enabled: boolean
-    keyframes: ZoomKeyframe[]
+    segments: ZoomSegment[]
   }
   focal: string | null
 }
@@ -218,8 +224,6 @@ export interface AppSettings {
   default_max_size: number
   default_stride_mode: string
   depth_model_variant: 'int8' | 'fp32'
-  canny_low: number
-  canny_high: number
   hardware_profile: Record<string, unknown> | null
   requires_reinstall?: boolean
 }

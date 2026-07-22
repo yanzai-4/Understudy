@@ -12,8 +12,6 @@ DEFAULTS: dict = {
     "default_max_size": 768,
     "default_stride_mode": "auto",  # "auto" or an integer stride
     "depth_model_variant": "int8",  # int8 | fp32
-    "canny_low": 100,
-    "canny_high": 200,
     "hardware_profile": None,
 }
 

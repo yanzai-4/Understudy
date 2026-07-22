@@ -22,7 +22,7 @@ class ExtractionContext:
     total_out_frames: int
     ort_provider: str  # 'cpu' | 'directml' (Windows) | 'coreml' (macOS)
     models_dir: Path
-    app_settings: dict  # settings-table snapshot (canny thresholds, model variant, ...)
+    app_settings: dict  # settings-table snapshot (depth model variant, ...)
     is_cancelled: Callable[[], bool]
 
 

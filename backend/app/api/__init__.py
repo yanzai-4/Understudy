@@ -6,6 +6,7 @@ from app.api import (
     exports,
     extraction,
     films,
+    layout,
     lens,
     shots,
     system,
@@ -21,6 +22,7 @@ api_router.include_router(extraction.router)
 api_router.include_router(background.router)
 api_router.include_router(camera.router)
 api_router.include_router(lens.router)
+api_router.include_router(layout.router)
 api_router.include_router(exports.router)
 api_router.include_router(tasks.router)
 api_router.include_router(system.router)

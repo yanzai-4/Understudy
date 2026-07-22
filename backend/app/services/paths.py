@@ -9,7 +9,7 @@ from pathlib import Path
 
 from app.config import settings
 
-SHOT_SUBDIRS = ["source", "thumbnail", "frames", "pose", "depth", "canny", "masks", "exports"]
+SHOT_SUBDIRS = ["source", "thumbnail", "frames", "pose", "depth", "masks", "exports"]
 
 
 def film_dir(film_id: str) -> Path:
