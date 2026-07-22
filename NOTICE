@@ -19,7 +19,7 @@ RTMPose / RTMDet, via rtmlib — body detection + pose estimation
     License: Apache-2.0
     Pose weights are fetched into the rtmlib cache on first use.
 
-TopFormer (ADE20K, 512) — semantic segmentation for the layout blockout
+TopFormer (ADE20K, 512) — sky/ground backdrop for the layout blockout
     Architecture: TopFormer (https://github.com/hustvl/TopFormer), trained on
     ADE20K (MIT Scene Parsing Benchmark). ONNX weights self-hosted on the
     project's GitHub releases (models-v1).

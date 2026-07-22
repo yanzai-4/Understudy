@@ -62,7 +62,8 @@ def test_shade_by_depth_near_brighter_than_far():
 # ---------- wiring ----------
 
 
-def test_layout_registered_and_requires_model():
+def test_layout_registered_and_requires_models():
     assert "layout" in EXTRACTOR_REGISTRY
-    assert "topformer_ade20k" in model_manager.required_keys_for(["layout"], "int8")
-    assert "topformer_ade20k" in model_manager.MANAGED_MODELS
+    keys = model_manager.required_keys_for(["layout"], "int8")
+    assert "topformer_ade20k" in keys  # backdrop
+    assert "yolox_tiny" in keys  # subjects

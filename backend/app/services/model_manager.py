@@ -32,8 +32,8 @@ MANAGED_MODELS: dict[str, dict] = {
         "relpath": f"{DEPTH_DIR}/model.onnx",
         "size_mb": 100,
     },
-    # Scene layout segmentation (TopFormer ADE20K, Apache-2.0), for the optional
-    # "layout" channel. Self-hosted as a GitHub release asset for a stable URL.
+    # Scene layout backdrop segmentation (TopFormer ADE20K, Apache-2.0) — used
+    # only for the sky/ground horizon split (buildings are never marked).
     "topformer_ade20k": {
         "name": "TopFormer scene layout (ADE20K)",
         "url": "https://github.com/yanzai-4/Understudy/releases/download/models-v1/topformer_ade20k_512.onnx",
@@ -107,8 +107,8 @@ def required_keys_for(
     if "depth" in channels:
         keys.append(depth_key_for(depth_variant))
     if "layout" in channels:
-        keys.append("topformer_ade20k")
-        keys.append(detector_key_for(layout_model))
+        keys.append("topformer_ade20k")  # backdrop
+        keys.append(detector_key_for(layout_model))  # subjects
     return keys
 
 
@@ -117,10 +117,9 @@ def download_required_cli() -> None:
 
     Covers the default extraction channels (pose / depth / layout): pose +
     depth-int8 are core (a failure aborts install); the layout pair (TopFormer
-    seg + YOLOX-tiny detector) is best-effort — if it can't be fetched now it
-    lazy-downloads on the first layout extraction instead of bricking setup.
-    The heavy quality detector (yolox_l) stays lazy — only fetched if a user
-    with real GPU headroom opts into it.
+    backdrop + YOLOX-tiny detector) is best-effort — if it can't be fetched now
+    it lazy-downloads on the first layout extraction instead of bricking setup.
+    The heavy quality detector (yolox_l) stays lazy — only fetched if opted into.
     """
     core = (RTMLIB_KEY, "depth_anything_v2_int8")
     optional = ("topformer_ade20k", "yolox_tiny")  # layout pair

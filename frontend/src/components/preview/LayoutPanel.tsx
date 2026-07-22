@@ -41,11 +41,9 @@ export default function LayoutPanel({ shot, index }: { shot: Shot; index: number
       .catch(console.error)
   }, [shot.id])
 
-  const autoIds = useMemo(
-    () => (scene ? scene.instances.filter((i) => i.auto).map((i) => i.id) : []),
-    [scene],
-  )
-  const effSelected = selected ?? autoIds
+  // Default: every detected subject is shown; the director turns off unwanted.
+  const allIds = useMemo(() => (scene ? scene.instances.map((i) => i.id) : []), [scene])
+  const effSelected = selected ?? allIds
 
   useEffect(() => {
     latest.current = { selected, backdrop: disabledBackdrop }
@@ -64,7 +62,7 @@ export default function LayoutPanel({ shot, index }: { shot: Shot; index: number
   }, [shot.id])
 
   const toggleSubject = (id: number) => {
-    const base = selected ?? autoIds
+    const base = selected ?? allIds
     setSelected(base.includes(id) ? base.filter((x) => x !== id) : [...base, id])
     persist()
   }

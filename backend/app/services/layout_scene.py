@@ -178,6 +178,45 @@ def estimate_horizon(ids: np.ndarray, roles: dict) -> np.ndarray:
     return np.clip(np.interp(ctrl_x, xs, ys), 0, h - 1)
 
 
+def horizon_from_depth(depth: np.ndarray | None, occluders: list, size: tuple[int, int]) -> np.ndarray:
+    """Perspective dividing line = top edge of the near→far receding ground/floor
+    plane, from DEPTH (no semantic classes → no building mis-recognition). Above
+    it = wall/building/sky (all backdrop), below = ground. Columns covered by a
+    subject box are bridged from neighbours; the line is smoothed and clamped to
+    a sane band so it can never collapse to a crazy value. Returns HORIZON_POINTS
+    y-pixel control values."""
+    w, h = size
+    if depth is None:
+        return np.full(HORIZON_POINTS, h * 0.55, np.float32)
+    if depth.shape[:2] != (h, w):
+        depth = cv2.resize(depth, (w, h), interpolation=cv2.INTER_LINEAR)
+    d = cv2.GaussianBlur(depth.astype(np.float32) / 255.0, (0, 0), 2)
+    xs = np.arange(w)
+    # per-column floor cutoff: relative to the near depth at the bottom rows
+    bottom_ref = np.median(d[int(h * 0.88):], axis=0)
+    thr = np.maximum(0.12, bottom_ref * 0.45)
+    ground = d > thr[None, :]
+    run = max(4, int(h * HORIZON_RUN_FRAC))
+    cs = np.vstack([np.zeros((1, w), np.float32), np.cumsum(ground.astype(np.float32), axis=0)])
+    sustained = ((cs[run:] - cs[:-run]) / run) >= HORIZON_RUN_MIN
+    has = sustained.any(axis=0)
+    first = np.where(has, sustained.argmax(axis=0), np.nan).astype(np.float32)
+    occ = np.zeros(w, bool)
+    for (x, y, bw, bh) in occluders:
+        occ[max(0, int(x)):min(w, int(x) + int(bw))] = True
+    valid = has & ~occ & ~np.isnan(first)
+    if valid.sum() < w * 0.05:
+        finite = first[np.isfinite(first)]
+        ys = np.full(w, float(np.median(finite)) if finite.size else h * 0.55, np.float32)
+    else:
+        ys = np.interp(xs, xs[valid], first[valid]).astype(np.float32)
+    ys = _rolling_median(ys, w // 20)
+    ys = _smooth_1d(ys, w // 12)
+    ys = np.clip(ys, h * 0.2, h * 0.9)  # sane band — never a collapsed line
+    ctrl_x = np.linspace(0, w - 1, HORIZON_POINTS)
+    return np.clip(np.interp(ctrl_x, xs, ys), 0, h - 1)
+
+
 def material_grids(ids: np.ndarray, roles: dict) -> dict[str, np.ndarray]:
     """Coarse occupancy grid per ground material (paved/veg/water) — the raw
     input for the smoothed material patches on the ground plane."""
@@ -612,8 +651,9 @@ def build_scene(
 
 
 def default_selected(scene: dict) -> set[int]:
-    """Instance ids the tool proposes (the salient `auto` set)."""
-    return {inst["id"] for inst in scene["instances"] if inst.get("auto")}
+    """Default = show EVERY detected subject; the director turns off the ones
+    they don't want. (Salience is kept only to order the panel, not to hide.)"""
+    return {inst["id"] for inst in scene["instances"]}
 
 
 def hidden_instances(scene: dict, selected: set[int] | list | None) -> set[int]:

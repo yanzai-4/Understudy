@@ -73,11 +73,12 @@ def test_coco_asset_shape_and_groups():
     coco = load_coco()
     assert len(coco["names"]) == 80 and len(coco["groups"]) == 80
     assert coco["names"][2] == "car" and coco["groups"][2] == "vehicle"
-    assert coco["groups"][0] == "person"  # dropped downstream (pose owns people)
-    assert set(coco["ade_repr"]) >= {"person", "vehicle", "props"}
-    # only vehicles/props become subject candidates; people come from pose
-    assert OBJECT_GROUPS == {"vehicle", "props"}
-    assert "person" in coco["drop"]
+    assert coco["groups"][0] == "person"  # people come from the detector too now
+    assert coco["groups"][16] == "animal"  # dog → animal group
+    assert set(coco["ade_repr"]) >= {"person", "vehicle", "animal", "props"}
+    # all subjects come from the detector: person / vehicle / animal / props
+    assert OBJECT_GROUPS == {"person", "vehicle", "animal", "props"}
+    assert coco["drop"] == []  # nothing dropped — person is a subject here
 
 
 # ---------- model tier wiring ----------
@@ -86,7 +87,7 @@ def test_coco_asset_shape_and_groups():
 def test_required_keys_pick_detector_by_tier():
     fast = model_manager.required_keys_for(["layout"], "int8", "fast")
     quality = model_manager.required_keys_for(["layout"], "int8", "quality")
-    assert "topformer_ade20k" in fast and "yolox_tiny" in fast
+    assert "topformer_ade20k" in fast and "yolox_tiny" in fast  # backdrop + subjects
     assert "yolox_l" in quality and "yolox_tiny" not in quality
     assert model_manager.detector_key_for("quality") == "yolox_l"
     assert model_manager.detector_key_for("fast") == "yolox_tiny"

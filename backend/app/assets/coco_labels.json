@@ -1,6 +1,6 @@
 {
   "source": "COCO (80 classes)",
-  "note": "Detector labels → layout groups. Coarse by design: the AI regenerates appearance, so only group + placement matter. person is dropped (pose owns people); buildings/trees/backdrop stay on segmentation.",
+  "note": "Detector labels → layout subject groups: person / vehicle / animal / props (everything else). People come from the detector too (pose is a separate signal). Buildings/backdrop are not detected by COCO.",
   "names": [
     "person",
     "bicycle",
@@ -98,16 +98,16 @@
     "props",
     "props",
     "props",
-    "props",
-    "props",
-    "props",
-    "props",
-    "props",
-    "props",
-    "props",
-    "props",
-    "props",
-    "props",
+    "animal",
+    "animal",
+    "animal",
+    "animal",
+    "animal",
+    "animal",
+    "animal",
+    "animal",
+    "animal",
+    "animal",
     "props",
     "props",
     "props",
@@ -168,9 +168,8 @@
   "ade_repr": {
     "person": 12,
     "vehicle": 20,
+    "animal": 126,
     "props": 19
   },
-  "drop": [
-    "person"
-  ]
+  "drop": []
 }

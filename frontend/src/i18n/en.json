@@ -253,7 +253,7 @@
       "blockout": "Blockout",
       "ade": "Standard"
     },
-    "subjectHint": "Mark this subject in/out (number = cinematic salience). The tool pre-selects the salient few; you curate.",
+    "subjectHint": "All detected subjects are shown by default (number = cinematic salience, most prominent first). Click to turn one off.",
     "noSubjects": "No salient subjects detected in this shot.",
     "backdropHint": "Toggle a backdrop plane: disabled area renders black (unconstrained) — not backfilled",
     "backdrop": {
@@ -263,6 +263,7 @@
     "group": {
       "person": "Person",
       "vehicle": "Vehicles",
+      "animal": "Animals",
       "building": "Buildings",
       "ground": "Ground",
       "sky": "Sky",

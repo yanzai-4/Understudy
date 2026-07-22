@@ -178,7 +178,9 @@
       "model": "topformer_ade20k",
       "detector": "yolox_tiny",
       "mode": "scene",
-      "instances": {},
+      "instances": {
+        "person": 1
+      },
       "top_class": 5,
       "bottom_class": 3
     }

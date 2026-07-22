@@ -154,7 +154,9 @@
       "detector": "yolox_tiny",
       "mode": "scene",
       "instances": {
-        "person": 6
+        "person": 9,
+        "vehicle": 2,
+        "animal": 1
       },
       "top_class": 2,
       "bottom_class": 9

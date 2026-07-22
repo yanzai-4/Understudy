@@ -285,13 +285,30 @@ def test_auto_caps_selection():
     assert len(autos) <= ls.SALIENT_KEEP
 
 
-def test_hidden_instances_default_and_curated():
+def test_hidden_instances_default_shows_all():
     scene = _sal_scene([[_det(60)] for _ in range(6)])
-    auto_ids = ls.default_selected(scene)
-    assert ls.hidden_instances(scene, None) == {i["id"] for i in scene["instances"]} - auto_ids
-    # curated to an explicit set: everything else hidden
-    keep = next(iter(auto_ids)) if auto_ids else scene["instances"][0]["id"]
-    assert keep not in ls.hidden_instances(scene, [keep])
+    all_ids = {i["id"] for i in scene["instances"]}
+    assert ls.default_selected(scene) == all_ids  # everything shown by default
+    assert ls.hidden_instances(scene, None) == set()  # nothing hidden by default
+    # curated to an explicit subset → the rest hidden
+    keep = next(iter(all_ids))
+    assert ls.hidden_instances(scene, [keep]) == all_ids - {keep}
+
+
+def test_horizon_from_depth_sane_and_clamped():
+    h, w = 120, 200
+    depth = np.zeros((h, w), np.uint8)
+    for y in range(h):
+        depth[y, :] = int(255 * y / (h - 1))  # bottom (near) bright → top (far) dark
+    hz = ls.horizon_from_depth(depth, [], (w, h))
+    assert len(hz) == ls.HORIZON_POINTS
+    assert np.all((hz >= h * 0.2 - 1) & (hz <= h * 0.9 + 1))  # clamped to a sane band
+    # occluder box + degenerate (all-far) depth don't crash or go crazy
+    assert np.all(np.isfinite(ls.horizon_from_depth(depth, [[80, 30, 40, 60]], (w, h))))
+    flat = ls.horizon_from_depth(np.zeros((h, w), np.uint8), [], (w, h))
+    assert np.all(np.isfinite(flat))
+    # no depth at all → a defined flat fallback
+    assert len(ls.horizon_from_depth(None, [], (w, h))) == ls.HORIZON_POINTS
 
 
 def test_horizon_non_linear_and_occlusion_bridged():
