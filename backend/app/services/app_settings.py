@@ -12,6 +12,7 @@ DEFAULTS: dict = {
     "default_max_size": 768,
     "default_stride_mode": "auto",  # "auto" or an integer stride
     "depth_model_variant": "int8",  # int8 | fp32
+    "layout_model": "fast",  # fast (YOLOX-tiny) | quality (YOLOX-l, strong GPU / Apple Silicon)
     "hardware_profile": None,
 }
 

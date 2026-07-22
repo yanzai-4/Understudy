@@ -206,6 +206,7 @@ export interface HardwareProfile {
     ort_provider: OrtProvider
     default_max_size: number
     default_stride_mode: string
+    layout_model: 'fast' | 'quality'
   }
 }
 
@@ -224,6 +225,7 @@ export interface AppSettings {
   default_max_size: number
   default_stride_mode: string
   depth_model_variant: 'int8' | 'fp32'
+  layout_model: 'fast' | 'quality'
   hardware_profile: Record<string, unknown> | null
   requires_reinstall?: boolean
 }

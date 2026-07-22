@@ -26,6 +26,12 @@ TopFormer (ADE20K, 512) — semantic segmentation for the layout blockout
     License: Apache-2.0
     Downloaded at install/first-run into models/ (not redistributed here).
 
+YOLOX (tiny / l) — foreground object detection for the layout blockout
+    https://github.com/Megvii-BaseDetection/YOLOX  (trained on COCO)
+    License: Apache-2.0
+    Pre-exported ONNX fetched from YOLOX's own release (tag 0.1.1rc0) at
+    install/first-run into models/ (not redistributed here).
+
 ================================================================================
 Libraries
 ================================================================================

@@ -245,28 +245,69 @@ def test_persons_from_pose_skips_sparse_detections():
     assert ls.persons_from_pose(kp, (200, 150), 1, PERSON) is None
 
 
-# ---------- ground materials ----------
+# ---------- salience & selection ----------
 
 
-def test_ground_materials_split_road_and_lawn():
-    grass = META["classes"].index("grass")
-    ids = make_ids(w=160, h=120, horizon=40)  # sky above 40, road below
-    ids[40:, :80] = grass  # left half of the ground is lawn
-    roles = ls.scene_roles(META)
-    grids = [ls.material_grids(ids, roles) for _ in range(6)]
-    horizons = [ls.estimate_horizon(ids, roles) for _ in range(6)]
+def _sal_scene(dets_per_frame, size=(160, 120), frames=8):
+    ids = make_ids(size[0], size[1])
+    horizons = [ls.estimate_horizon(ids, ROLES) for _ in range(frames)]
     counts = np.bincount(ids.ravel(), minlength=150)
-    top = np.where(np.isin(np.arange(150), list(roles["top"])), counts, 0)
-    bottom = np.where(np.isin(np.arange(150), list(roles["bottom"])), counts, 0)
-    scene = ls.build_scene([[]] * 6, horizons, [[0.7, 1.0]] * 6, top, bottom,
-                           (160, 120), grids=grids, roles=roles)
-    names = [m["name"] for m in scene["materials"]]
-    assert "veg" in names or scene["bottom_class"] == grass  # lawn present either way
-    img = ls.render_frame(scene, META, 3, "ade")
-    left = img[100, 30].tolist()
-    right = img[100, 130].tolist()
-    assert left != right  # lawn and road are distinguishable
-    assert left == list(META["palette"][grass][::-1]) or right == list(META["palette"][grass][::-1])
+    top = np.where(np.isin(np.arange(150), list(ROLES["top"])), counts, 0)
+    bottom = np.where(np.isin(np.arange(150), list(ROLES["bottom"])), counts, 0)
+    return ls.build_scene(dets_per_frame, horizons, [[0.7, 1.0]] * frames, top, bottom, size)
+
+
+def test_salience_prefers_big_near_central_over_tiny_far():
+    # a large, near, centred person vs a tiny, far, corner prop
+    big = {"group": "person", "cls": PERSON, "box": [60, 40, 30, 60], "d": 0.9, "color": [200, 50, 50]}
+    tiny = {"group": "props", "cls": CAR, "box": [2, 2, 8, 8], "d": 0.1, "color": [40, 40, 40]}
+    scene = _sal_scene([[dict(big), dict(tiny)] for _ in range(8)])
+    by_group = {i["group"]: i for i in scene["instances"]}
+    assert by_group["person"]["salience"] > by_group["props"]["salience"]
+    assert by_group["person"]["auto"] is True  # the salient subject is proposed
+
+
+def test_scene_is_v4_minimal_backdrop():
+    scene = _sal_scene([[_det(60)] for _ in range(6)])
+    assert scene["version"] == 4
+    assert "materials" not in scene  # minimal backdrop only
+    assert all("salience" in i and "auto" in i for i in scene["instances"])
+
+
+def test_auto_caps_selection():
+    # more candidates than SALIENT_KEEP → only the cap is auto-selected
+    dets = [
+        {"group": "props", "cls": CAR, "box": [10 * k, 40, 12, 12], "d": 0.5, "color": [k * 10 % 255, 0, 0]}
+        for k in range(1, 12)
+    ]
+    scene = _sal_scene([[dict(d) for d in dets] for _ in range(8)], size=(320, 120))
+    autos = [i for i in scene["instances"] if i["auto"]]
+    assert len(autos) <= ls.SALIENT_KEEP
+
+
+def test_hidden_instances_default_and_curated():
+    scene = _sal_scene([[_det(60)] for _ in range(6)])
+    auto_ids = ls.default_selected(scene)
+    assert ls.hidden_instances(scene, None) == {i["id"] for i in scene["instances"]} - auto_ids
+    # curated to an explicit set: everything else hidden
+    keep = next(iter(auto_ids)) if auto_ids else scene["instances"][0]["id"]
+    assert keep not in ls.hidden_instances(scene, [keep])
+
+
+def test_horizon_non_linear_and_occlusion_bridged():
+    # a sloped sky/ground boundary with a movable occluder standing on it
+    h, w = 120, 200
+    ids = np.full((h, w), SKY, np.uint8)
+    slope = (40 + np.arange(w) * 0.2).astype(int)  # ground rises left→right
+    for x in range(w):
+        ids[slope[x] :, x] = ROAD
+    ids[30:100, 90:120] = PERSON  # occludes the boundary in that band
+    hz = ls.estimate_horizon(ids, ROLES)
+    assert hz.max() - hz.min() > 8  # non-linear: it followed the slope
+    # occluded band bridged from neighbours (no dip toward the person's base)
+    xs = np.linspace(0, w - 1, len(hz))
+    band = hz[(xs >= 90) & (xs <= 120)]
+    assert band.max() < 100  # didn't collapse to the occluder's base
 
 
 # ---------- color identity ----------

@@ -68,5 +68,8 @@ def detect() -> dict:
             "ort_provider": recommended_provider,
             "default_max_size": recommended_max_size,
             "default_stride_mode": "auto",
+            # Heavier layout detector only where there's real compute headroom
+            # (discrete GPU, or Apple Silicon via CoreML).
+            "layout_model": "quality" if strong_gpu else "fast",
         },
     }

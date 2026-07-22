@@ -11,22 +11,21 @@ import { drawScene, type LayoutSceneJson } from '../../lib/layoutScene'
 
 type Palette = 'ade' | 'blockout'
 
-/** Layout channel panel: the 2.5D scene proxy rendered on a canvas.
- * Every person/vehicle/building is a tracked instance you can toggle off —
- * the always-complete backdrop fills in behind it (never a hole). */
+/** Layout channel panel: the selective 2.5D blockout on a canvas. Only the
+ * cinematically salient subjects are marked; the tool proposes the top few
+ * (auto) and the director curates the rest. Deselecting one just drops its
+ * primitive — the minimal ground/horizon backdrop shows through. */
 export default function LayoutPanel({ shot, index }: { shot: Shot; index: number }) {
   const { t } = useTranslation()
   const [asset, setAsset] = useState<Ade20kAsset | null>(null)
   const [scene, setScene] = useState<LayoutSceneJson | null>(null)
-  const [disabledGroups, setDisabledGroups] = useState<string[]>([])
-  const [disabledInstances, setDisabledInstances] = useState<number[]>([])
+  // null = follow the tool's auto proposal; an array = the director's curation.
+  const [selected, setSelected] = useState<number[] | null>(null)
   const [disabledBackdrop, setDisabledBackdrop] = useState<string[]>([])
   const [palette, setPalette] = useState<Palette>('blockout')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Debounced saves read the latest state from this ref, so rapid mixed
-  // group/instance toggles can't overwrite each other with stale closures.
-  const latest = useRef({ groups: [] as string[], instances: [] as number[], backdrop: [] as string[] })
+  const latest = useRef({ selected: null as number[] | null, backdrop: [] as string[] })
 
   useEffect(() => {
     getAde20k().then(setAsset).catch(console.error)
@@ -36,39 +35,37 @@ export default function LayoutPanel({ shot, index }: { shot: Shot; index: number
       .catch(console.error)
     getLayoutState(shot.id)
       .then((s) => {
-        setDisabledGroups(s.disabled_groups)
-        setDisabledInstances(s.disabled_instances ?? [])
+        setSelected(s.selected_instances ?? null)
         setDisabledBackdrop(s.disabled_backdrop ?? [])
       })
       .catch(console.error)
   }, [shot.id])
 
+  const autoIds = useMemo(
+    () => (scene ? scene.instances.filter((i) => i.auto).map((i) => i.id) : []),
+    [scene],
+  )
+  const effSelected = selected ?? autoIds
+
   useEffect(() => {
-    latest.current = { groups: disabledGroups, instances: disabledInstances, backdrop: disabledBackdrop }
-  }, [disabledGroups, disabledInstances, disabledBackdrop])
+    latest.current = { selected, backdrop: disabledBackdrop }
+  }, [selected, disabledBackdrop])
 
   const persist = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(
       () =>
         putLayoutState(shot.id, {
-          disabled_groups: latest.current.groups,
-          disabled_instances: latest.current.instances,
+          selected_instances: latest.current.selected,
           disabled_backdrop: latest.current.backdrop,
         }).catch(console.error),
       600,
     )
   }, [shot.id])
 
-  const toggleGroup = (group: string) => {
-    setDisabledGroups((cur) =>
-      cur.includes(group) ? cur.filter((g) => g !== group) : [...cur, group],
-    )
-    persist()
-  }
-
-  const toggleInstance = (id: number) => {
-    setDisabledInstances((cur) => (cur.includes(id) ? cur.filter((i) => i !== id) : [...cur, id]))
+  const toggleSubject = (id: number) => {
+    const base = selected ?? autoIds
+    setSelected(base.includes(id) ? base.filter((x) => x !== id) : [...base, id])
     persist()
   }
 
@@ -79,15 +76,22 @@ export default function LayoutPanel({ shot, index }: { shot: Shot; index: number
     persist()
   }
 
-  // number instances within their group: Person 1, Person 2, Car 1...
-  const labeled = useMemo(() => {
+  // subjects ranked by salience, numbered within their group (Person 1, Car 1…)
+  const candidates = useMemo(() => {
     if (!scene) return []
     const counters: Record<string, number> = {}
-    return scene.instances.map((inst) => {
-      counters[inst.group] = (counters[inst.group] ?? 0) + 1
-      return { inst, n: counters[inst.group] }
-    })
+    return [...scene.instances]
+      .sort((a, b) => (b.salience ?? 0) - (a.salience ?? 0))
+      .map((inst) => {
+        counters[inst.group] = (counters[inst.group] ?? 0) + 1
+        return { inst, n: counters[inst.group] }
+      })
   }, [scene])
+
+  const disabledInstances = useMemo(
+    () => (scene ? scene.instances.map((i) => i.id).filter((id) => !effSelected.includes(id)) : []),
+    [scene, effSelected],
+  )
 
   useEffect(() => {
     if (!asset || !scene || !canvasRef.current) return
@@ -101,16 +105,11 @@ export default function LayoutPanel({ shot, index }: { shot: Shot; index: number
       asset,
       index,
       palette,
-      new Set(disabledGroups),
+      new Set(),
       new Set(disabledInstances),
       new Set(disabledBackdrop),
     )
-  }, [asset, scene, index, palette, disabledGroups, disabledInstances, disabledBackdrop])
-
-  const groupsPresent = useMemo(
-    () => (scene ? [...new Set(scene.instances.map((i) => i.group))] : []),
-    [scene],
-  )
+  }, [asset, scene, index, palette, disabledInstances, disabledBackdrop])
 
   return (
     <div>
@@ -131,7 +130,7 @@ export default function LayoutPanel({ shot, index }: { shot: Shot; index: number
                 </button>
               ))}
             </div>
-            {/* backdrop planes: disabled = black (unconstrained), never backfilled */}
+            {/* minimal backdrop planes: disabled = black (unconstrained) */}
             {(['top', 'bottom'] as const).map((plane) => {
               const off = disabledBackdrop.includes(plane)
               const [r, g, b] = asset.blockout_palette[plane === 'top' ? 'sky' : 'ground']
@@ -152,54 +151,35 @@ export default function LayoutPanel({ shot, index }: { shot: Shot; index: number
                 </button>
               )
             })}
-            {groupsPresent.map((group) => {
-              const off = disabledGroups.includes(group)
-              const [r, g, b] = asset.blockout_palette[group]
-              return (
-                <button
-                  key={group}
-                  onClick={() => toggleGroup(group)}
-                  title={t('layout.toggleHint')}
-                  className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] transition ${
-                    off ? 'border-night-700 text-slate-600 line-through' : 'border-night-500 text-slate-300'
-                  }`}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: off ? '#333' : `rgb(${r},${g},${b})` }}
-                  />
-                  {t(`layout.group.${group}`)}
-                </button>
-              )
-            })}
           </div>
-          {/* per-instance toggles */}
-          {labeled.length > 0 && (
+          {/* subject candidates, ranked by salience; checked = marked */}
+          {candidates.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1">
-              {labeled.map(({ inst, n }) => {
-                const groupOff = disabledGroups.includes(inst.group)
-                const off = groupOff || disabledInstances.includes(inst.id)
-                // real sampled color when available — tells you WHICH person/car this is
+              {candidates.map(({ inst, n }) => {
+                const on = effSelected.includes(inst.id)
                 const [r, g, b] = inst.color ?? asset.blockout_palette[inst.group]
+                const pct = Math.round((inst.salience ?? 0) * 100)
                 return (
                   <button
                     key={inst.id}
-                    disabled={groupOff}
-                    onClick={() => toggleInstance(inst.id)}
-                    title={t('layout.instanceHint')}
-                    className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] transition disabled:opacity-40 ${
-                      off ? 'border-night-800 text-slate-600 line-through' : 'border-night-600 text-slate-400'
+                    onClick={() => toggleSubject(inst.id)}
+                    title={t('layout.subjectHint')}
+                    className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] transition ${
+                      on ? 'border-cyan-500/60 text-slate-200' : 'border-night-800 text-slate-600'
                     }`}
                   >
                     <span
                       className="h-1.5 w-1.5 rounded-[2px]"
-                      style={{ background: off ? '#333' : `rgb(${r},${g},${b})` }}
+                      style={{ background: on ? `rgb(${r},${g},${b})` : '#333' }}
                     />
                     {t(`layout.group.${inst.group}`)} {n}
+                    <span className="text-[8px] text-slate-500">{pct}</span>
                   </button>
                 )
               })}
             </div>
+          ) : (
+            <span className="px-1 text-[9px] text-slate-600">{t('layout.noSubjects')}</span>
           )}
         </div>
       )}

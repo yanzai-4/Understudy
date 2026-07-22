@@ -23,6 +23,7 @@ import { useTaskPolling } from '../../hooks/useTaskPolling'
 import { lensPhrases } from '../../lib/lensPhrase'
 import { focalPlaneAt, zoomAt } from '../../lib/lensCurve'
 import SegmentTrack, { type TrackSegment } from '../preview/SegmentTrack'
+import Scrubber from '../preview/Scrubber'
 import HintBar from '../common/HintBar'
 import Button from '../common/Button'
 
@@ -92,6 +93,7 @@ export default function StepLens({ shot, onNext }: Props) {
   const [mappings, setMappings] = useState<PromptMappings | null>(null)
   const [lens, setLens] = useState<LensData | null>(null)
   const [frame, setFrame] = useState(0)
+  const [playing, setPlaying] = useState(false)
   const [mode, setMode] = useState<Mode>('focus')
   const [source, setSource] = useState<Source>('live')
   const [selFocus, setSelFocus] = useState<number | null>(null)
@@ -119,6 +121,22 @@ export default function StepLens({ shot, onNext }: Props) {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [shot.id])
 
+  // Playback: advance the playhead at the effective frame rate, stop at the end.
+  useEffect(() => {
+    if (!playing || !meta) return
+    const id = setInterval(() => {
+      setFrame((f) => {
+        if (f >= meta.frame_count - 1) return f
+        return f + 1
+      })
+    }, 1000 / Math.max(1, meta.effective_fps))
+    return () => clearInterval(id)
+  }, [playing, meta])
+
+  useEffect(() => {
+    if (meta && frame >= meta.frame_count - 1) setPlaying(false)
+  }, [frame, meta])
+
   const save = useCallback(
     (next: LensData) => {
       setLens(next)
@@ -135,8 +153,9 @@ export default function StepLens({ shot, onNext }: Props) {
       (lens.zoom.enabled && lens.zoom.segments.length > 0))
 
   // Live single-frame preview (debounced against scrubbing / param edits).
+  // Skipped during playback — we show raw frames then, to advance smoothly.
   useEffect(() => {
-    if (!lens || source !== 'live' || !lensActive) return
+    if (!lens || source !== 'live' || !lensActive || playing) return
     if (previewTimer.current) clearTimeout(previewTimer.current)
     previewTimer.current = setTimeout(() => {
       lensPreview(shot.id, frame, lens)
@@ -148,7 +167,7 @@ export default function StepLens({ shot, onNext }: Props) {
         )
         .catch(console.error)
     }, 220)
-  }, [lens, frame, source, lensActive, shot.id])
+  }, [lens, frame, source, lensActive, playing, shot.id])
 
   const renderTask = useTaskPolling(renderTaskId, (snapshot) => {
     setRenderTaskId(null)
@@ -271,7 +290,7 @@ export default function StepLens({ shot, onNext }: Props) {
   const imageSrc =
     source === 'rendered' && rendered
       ? frameUrl(shot, 'dof', frame)
-      : source === 'live' && lensActive && previewUrl
+      : source === 'live' && lensActive && previewUrl && !playing
         ? previewUrl
         : frameUrl(shot, 'frames', frame)
 
@@ -387,20 +406,35 @@ export default function StepLens({ shot, onNext }: Props) {
           {/* Timeline: playhead + focus/zoom tracks share one [label | rail |
               control] grid so a frame lines up across all three rows. */}
           <div className="mt-2.5 flex flex-col gap-1.5">
-            {/* Playhead */}
+            {/* Playhead: play/pause · scrubber · timecode */}
             <div className="flex items-center gap-2">
-              <span className="w-12 shrink-0 text-right font-mono text-[10px] text-slate-600">
-                #{frame + 1}
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={Math.max(0, meta.frame_count - 1)}
-                value={frame}
-                onChange={(e) => setFrame(Number(e.target.value))}
-                className="h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-night-700 accent-cyan-400"
-              />
+              <div className="flex w-12 shrink-0 justify-center">
+                <button
+                  onClick={() => {
+                    if (!playing && frame >= meta.frame_count - 1) setFrame(0)
+                    setPlaying((p) => !p)
+                  }}
+                  title={playing ? t('lens.pause') : t('lens.play')}
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-night-600 text-slate-300 transition hover:border-cyan-500/60 hover:text-cyan-300"
+                >
+                  {playing ? (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="5" y="4" width="5" height="16" rx="1" />
+                      <rect x="14" y="4" width="5" height="16" rx="1" />
+                    </svg>
+                  ) : (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M7 4v16l13-8z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <div className="min-w-0 flex-1">
+                <Scrubber frame={frame} frameCount={meta.frame_count} onSeek={setFrame} />
+              </div>
               <span className="w-16 shrink-0 text-right font-mono text-[10px] text-slate-500">
+                {frame + 1}/{meta.frame_count}
+                <br />
                 {timecode(frame, meta.effective_fps)}
               </span>
             </div>

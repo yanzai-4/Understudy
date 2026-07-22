@@ -12,16 +12,24 @@ from app.models import LayoutState
 
 router = APIRouter(tags=["layout"])
 
-DEFAULT_STATE: dict = {"disabled_groups": [], "disabled_instances": [], "disabled_backdrop": []}
+DEFAULT_STATE: dict = {"selected_instances": None, "disabled_backdrop": []}
+
+
+def _int_ids(values) -> list[int]:
+    return [
+        int(i) for i in (values or [])
+        if isinstance(i, (int, float, str)) and str(i).lstrip("-").isdigit()
+    ]
 
 
 def normalize_layout_state(data: dict | None) -> dict:
-    valid = set(load_ade20k()["group_order"])
+    """selected_instances: the director's curated subject set (None = follow the
+    tool's auto proposal). disabled_backdrop ⊆ {top, bottom}."""
     data = data or {}
-    disabled = [g for g in data.get("disabled_groups", []) if g in valid]
-    instances = [int(i) for i in data.get("disabled_instances", []) if isinstance(i, (int, float, str)) and str(i).lstrip("-").isdigit()]
+    sel = data.get("selected_instances")
+    selected = _int_ids(sel) if sel is not None else None
     backdrop = [b for b in data.get("disabled_backdrop", []) if b in ("top", "bottom")]
-    return {"disabled_groups": disabled, "disabled_instances": instances, "disabled_backdrop": backdrop}
+    return {"selected_instances": selected, "disabled_backdrop": backdrop}
 
 
 class LayoutUpdate(BaseModel):

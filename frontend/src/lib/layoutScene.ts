@@ -10,13 +10,9 @@ export interface SceneInstance {
   group: string
   cls: number
   color?: [number, number, number] | null // sampled real-world RGB (identity cue)
+  salience?: number // 0..1 cinematic prominence
+  auto?: boolean // tool's default selection (the salient few)
   frames: Record<string, number[]> // frame → [x, y, w, h, d]
-}
-
-export interface SceneMaterial {
-  name: string // 'veg' | 'water' | 'paved'
-  cls: number
-  frames: number[][][][] // per frame → polygons → points → [x, y]
 }
 
 export interface LayoutSceneJson {
@@ -26,11 +22,8 @@ export interface LayoutSceneJson {
   top_class: number | null
   bottom_class: number | null
   frames: { horizon: number[]; shade: [number, number] }[]
-  materials?: SceneMaterial[]
   instances: SceneInstance[]
 }
-
-const MATERIAL_FALLBACK: Record<string, string> = { veg: 'nature', water: 'water', paved: 'ground' }
 
 const SHADE_MIN = 0.55
 const SHADE_SPAN = 0.45
@@ -117,22 +110,6 @@ export function drawScene(
   } else {
     ctx.fillStyle = rampFill(bottomColor)
     ctx.fill(groundPath)
-
-    // secondary ground materials (lawn / water patches), clipped to the plane
-    for (const mat of scene.materials ?? []) {
-      const polys = mat.frames[Math.min(frameIndex, mat.frames.length - 1)]
-      if (!polys?.length) continue
-      ctx.save()
-      ctx.clip(groundPath)
-      ctx.fillStyle = rampFill(classColor(asset, mat.cls, palette, MATERIAL_FALLBACK[mat.name] ?? 'ground'))
-      for (const poly of polys) {
-        ctx.beginPath()
-        poly.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)))
-        ctx.closePath()
-        ctx.fill()
-      }
-      ctx.restore()
-    }
   }
 
   // scenery (nature) behind everything else, then far → near

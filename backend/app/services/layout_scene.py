@@ -1,21 +1,19 @@
 """Layered 2.5D scene proxy — the "blockout" behind the layout channel.
 
-Instead of colorizing raw segmentation, each frame is decomposed like a 3D
-blockout scene:
+The blockout is deliberately *selective*, not exhaustive: since the AI
+regenerates all appearance, marking every wall/parked-car/prop is noise. So it
+keeps only the cinematically salient subjects on a minimal backdrop:
 
-- A **backdrop** that is always complete: a smoothed horizon curve splits the
-  frame into a top plane (sky / ceiling) and a ground plane (road / floor /
-  grass / water / vegetation — scenery belongs to the backdrop, so treelines
-  simply lift the smoothed silhouette), the ground shaded as a smooth near→far
-  ramp fitted from depth.
-- **Instances**: connected components of the object classes (person / vehicle /
-  building / props), tracked across frames, filtered of specks, and rendered
-  as simple primitives — capsules for people, rounded boxes for everything
-  else.
+- A **minimal backdrop**: a smoothed, occlusion-bridged horizon curve splits the
+  frame into a top plane (sky) and a ground plane (near→far shaded). No building
+  planes or material patches — just the ground/horizon spatial reference.
+- **Subjects**: people (from pose) and foreground objects (from the detector),
+  tracked across frames, each scored for **salience** (size · nearness · framing
+  · persistence). The tool auto-selects the top few; the director curates the
+  rest (semi-automatic). Rendered as capsules (people) / rounded boxes (objects).
 
-Deleting an instance simply skips its primitive, so the backdrop shows through
-and nothing is ever left as a hole. Rendering is mirrored in
-frontend/src/lib/layoutScene.ts — keep them in sync.
+Deleting/deselecting a subject just skips its primitive, so the backdrop shows
+through. Rendering is mirrored in frontend/src/lib/layoutScene.ts — keep in sync.
 """
 
 import json
@@ -40,6 +38,16 @@ COLOR_BONUS = 0.2  # weight of color similarity in the match score
 HORIZON_EMA = 0.25
 SHADE_EMA = 0.3
 SHADE_MIN, SHADE_SPAN = 0.55, 0.45
+# horizon robustness
+HORIZON_RUN_FRAC = 0.06  # a boundary needs this fraction of frame-height of
+HORIZON_RUN_MIN = 0.6    #   ground filling the window below it (rejects specks)
+HORIZON_OCCLUDE_FRAC = 0.08  # foreground run above the boundary → occluded col
+HORIZON_MED_FRAC = 0.05  # rolling-median window (kills isolated spikes)
+# salience: which subjects are "cinematic". Weighted mix, then keep the top few.
+SALIENCE_W = {"area": 0.4, "near": 0.25, "center": 0.2, "persist": 0.15}
+SALIENCE_PERSON_BONUS = 0.1  # people are usually the point of the shot
+SALIENT_KEEP = 6  # max auto-selected subjects
+SALIENT_FLOOR = 0.15  # don't auto-select near-invisible candidates
 POSE_SCORE_THR = 0.3
 MIN_POSE_POINTS = 5
 # A person primitive is a marker ("someone is here"), not a silhouette: lock
@@ -114,35 +122,60 @@ def _smooth_1d(values: np.ndarray, window: int) -> np.ndarray:
     return np.convolve(padded, kernel, mode="valid")
 
 
+def _rolling_median(values: np.ndarray, window: int) -> np.ndarray:
+    """Rolling median — removes isolated spikes (segmentation noise) while
+    preserving contiguous shape (real hills/slopes), so the curve stays
+    non-linear without overfitting to specks."""
+    window = max(3, window | 1)
+    pad = window // 2
+    padded = np.pad(values, pad, mode="edge")
+    return np.array([np.median(padded[i : i + window]) for i in range(len(values))], np.float32)
+
+
 def estimate_horizon(ids: np.ndarray, roles: dict) -> np.ndarray:
-    """Smoothed per-column boundary between the ground plane and the rest,
-    downsampled to HORIZON_POINTS control values (y pixels).
-
-    Columns whose boundary is occluded by a foreground object (a person/car
-    standing on the line) are treated as unknown and bridged from their
-    neighbors, so the boundary runs continuously behind objects — deleting the
-    object later reveals a seamless backdrop."""
+    """Smoothed, occlusion-bridged sky/ground boundary → HORIZON_POINTS control
+    values (y pixels). Non-linear (follows terrain) but not overfit (spikes
+    removed, smoothed); columns where a foreground object hides the true
+    boundary are bridged from their neighbours so the line runs continuously
+    behind subjects."""
     h, w = ids.shape
-    bottom_mask = np.isin(ids, list(roles["bottom"]))
-    has = bottom_mask.any(axis=0)
-    first = bottom_mask.argmax(axis=0).astype(np.float32)
+    xs = np.arange(w)
+    bottom = np.isin(ids, list(roles["bottom"]))
+    # Only MOVABLE foreground occludes the horizon (a person/car standing on the
+    # line). Buildings/structures sit above the ground boundary everywhere and
+    # define the skyline — treating them as occluders would blank the whole line.
+    movable = [cls for cls, g in roles["fg"].items() if g in ("person", "vehicle", "props")]
+    fg = np.isin(ids, movable).astype(np.float32)
 
-    # occluded: the pixel just above the found boundary is a foreground object
-    fg_mask = np.isin(ids, list(roles["fg"].keys()))
-    above = np.clip(first.astype(int) - 2, 0, h - 1)
-    occluded = fg_mask[above, np.arange(w)]
+    # Boundary = topmost row with a SUSTAINED ground run below it (a downward
+    # window that is mostly ground) — rejects stray high "ground" specks.
+    run = max(4, int(h * HORIZON_RUN_FRAC))
+    cs = np.vstack([np.zeros((1, w), np.float32), np.cumsum(bottom.astype(np.float32), axis=0)])
+    winfrac = (cs[run:] - cs[:-run]) / run  # (h-run+1, w): ground fraction in [r, r+run)
+    sustained = winfrac >= HORIZON_RUN_MIN
+    has = sustained.any(axis=0)
+    first = np.where(has, sustained.argmax(axis=0), np.nan).astype(np.float32)
 
-    ys = np.where(has & ~occluded, first, np.nan)
-    valid = ~np.isnan(ys)
-    if valid.sum() < w * 0.05:
-        ys = np.where(has, first, h * 0.72).astype(np.float32)  # fall back to raw
+    # Occluded columns: a foreground run sits directly ABOVE the boundary (an
+    # object standing on the line pushes the detected ground down to its base).
+    up = max(4, int(h * HORIZON_OCCLUDE_FRAC))
+    cf = np.vstack([np.zeros((1, w), np.float32), np.cumsum(fg, axis=0)])
+    b = np.clip(np.nan_to_num(first, nan=0.0).astype(int), 0, h)
+    lo = np.clip(b - up, 0, h)
+    fg_above = (cf[b, xs] - cf[lo, xs]) / np.maximum(1, b - lo)
+    occluded = has & (fg_above > 0.5)
+
+    valid = has & ~occluded
+    if valid.sum() < w * 0.05:  # too little clean boundary → flat fallback
+        ys = np.where(has, np.nan_to_num(first, nan=h * 0.72), h * 0.72).astype(np.float32)
+        ys = np.full(w, float(np.median(ys)), np.float32)
     else:
-        xs = np.arange(w)
-        ys = np.interp(xs, xs[valid], ys[valid]).astype(np.float32)
+        ys = np.interp(xs, xs[valid], first[valid]).astype(np.float32)
 
-    ys = _smooth_1d(ys, w // 8)
+    ys = _rolling_median(ys, w // 20)  # kill residual spikes…
+    ys = _smooth_1d(ys, w // 12)  # …then smooth into a gentle curve
     ctrl_x = np.linspace(0, w - 1, HORIZON_POINTS)
-    return np.clip(np.interp(ctrl_x, np.arange(w), ys), 0, h - 1)
+    return np.clip(np.interp(ctrl_x, xs, ys), 0, h - 1)
 
 
 def material_grids(ids: np.ndarray, roles: dict) -> dict[str, np.ndarray]:
@@ -217,10 +250,13 @@ def extract_instances(
     roles: dict,
     min_area_frac: float = MIN_AREA_FRAC,
     frame_bgr: np.ndarray | None = None,
+    groups: set[str] | None = None,
 ) -> list[dict]:
     """Connected components of foreground classes → raw instance boxes.
     When the source frame is given, each instance carries its mean color —
-    the appearance cue the tracker uses to tell same-group objects apart."""
+    the appearance cue the tracker uses to tell same-group objects apart.
+    `groups` restricts which fg groups are extracted (the hybrid pipeline lets
+    the detector own vehicles/props and leaves only building/trees to seg)."""
     h, w = ids.shape
     min_area = min_area_frac * h * w
     max_area = MAX_AREA_FRAC * h * w
@@ -231,6 +267,8 @@ def extract_instances(
 
     by_group: dict[str, list[int]] = {}
     for cls, group in roles["fg"].items():
+        if groups is not None and group not in groups:
+            continue
         by_group.setdefault(group, []).append(cls)
 
     out: list[dict] = []
@@ -498,6 +536,47 @@ def persons_from_pose(
 # ---------- scene assembly ----------
 
 
+def _attach_salience(instances: list[dict], size: tuple[int, int], total_frames: int) -> None:
+    """Score each subject for cinematic prominence and flag the top few `auto`.
+    salience = size · nearness · framing · persistence (people get a bonus)."""
+    w, h = size
+    frame_area = float(w * h)
+    half_diag = ((w * w + h * h) ** 0.5) / 2
+    cx0, cy0 = w / 2.0, h / 2.0
+    metrics = []
+    for inst in instances:
+        boxes = list(inst["frames"].values())  # [x, y, bw, bh, d]
+        if not boxes:
+            metrics.append((0.0, 0.0, 0.0, 0.0))
+            continue
+        arr = np.asarray(boxes, np.float32)
+        med = np.median(arr, axis=0)
+        area = float(med[2] * med[3]) / frame_area
+        near = float(med[4])
+        cx = float(np.median(arr[:, 0] + arr[:, 2] / 2))
+        cy = float(np.median(arr[:, 1] + arr[:, 3] / 2))
+        center = 1.0 - min(1.0, ((cx - cx0) ** 2 + (cy - cy0) ** 2) ** 0.5 / half_diag)
+        persist = len(boxes) / max(1, total_frames)
+        metrics.append((area, near, center, persist))
+
+    max_area = max((m[0] for m in metrics), default=0.0) or 1.0
+    scored = []
+    for inst, (area, near, center, persist) in zip(instances, metrics):
+        sal = (
+            SALIENCE_W["area"] * (area / max_area)
+            + SALIENCE_W["near"] * near
+            + SALIENCE_W["center"] * center
+            + SALIENCE_W["persist"] * persist
+        )
+        if inst["group"] == "person":
+            sal += SALIENCE_PERSON_BONUS
+        inst["salience"] = round(float(min(1.0, sal)), 3)
+        scored.append(inst)
+    scored.sort(key=lambda i: i["salience"], reverse=True)
+    for rank, inst in enumerate(scored):
+        inst["auto"] = bool(rank < SALIENT_KEEP and inst["salience"] >= SALIENT_FLOOR)
+
+
 def build_scene(
     per_frame_instances: list[list[dict]],
     horizons: list[np.ndarray],
@@ -505,8 +584,6 @@ def build_scene(
     top_counts: np.ndarray,
     bottom_counts: np.ndarray,
     size: tuple[int, int],
-    grids: list[dict[str, np.ndarray]] | None = None,
-    roles: dict | None = None,
 ) -> dict:
     # temporal smoothing of the backdrop (strong: the set shouldn't wobble)
     frames = []
@@ -521,48 +598,29 @@ def build_scene(
         prev, prev_sh = hz, sh
         frames.append({"horizon": [int(round(v)) for v in hz], "shade": [round(float(v), 3) for v in sh]})
 
-    top_class = int(top_counts.argmax()) if top_counts.sum() else None
-    bottom_class = int(bottom_counts.argmax()) if bottom_counts.sum() else None
-
-    # ground materials: the dominant one is the plane's base color, secondary
-    # materials (a lawn beside a road, a pond...) become smoothed patches
-    materials = []
-    if grids and roles:
-        coverage = {
-            name: float(np.mean([g[name].mean() for g in grids])) for name in grids[0]
-        }
-        base = max(coverage, key=coverage.get)
-        base_ids = roles["materials"][base]
-        if base_ids and bottom_counts[list(base_ids)].sum():
-            restricted = np.zeros_like(bottom_counts)
-            restricted[list(base_ids)] = bottom_counts[list(base_ids)]
-            bottom_class = int(restricted.argmax())
-        for name, cover in coverage.items():
-            if name == base or cover < MATERIAL_MIN_COVER:
-                continue
-            id_list = list(roles["materials"][name])
-            if not id_list or not bottom_counts[id_list].sum():
-                continue
-            restricted = np.zeros_like(bottom_counts)
-            restricted[id_list] = bottom_counts[id_list]
-            materials.append(
-                {
-                    "name": name,
-                    "cls": int(restricted.argmax()),
-                    "frames": _material_polys([g[name] for g in grids], size),
-                }
-            )
-
+    instances = track_instances(per_frame_instances, size)
+    _attach_salience(instances, size, len(frames))
     return {
-        "version": 3,
+        "version": 4,
         "size": list(size),
         "frame_count": len(frames),
-        "top_class": top_class,
-        "bottom_class": bottom_class,
+        "top_class": int(top_counts.argmax()) if top_counts.sum() else None,
+        "bottom_class": int(bottom_counts.argmax()) if bottom_counts.sum() else None,
         "frames": frames,
-        "materials": materials,
-        "instances": track_instances(per_frame_instances, size),
+        "instances": instances,
     }
+
+
+def default_selected(scene: dict) -> set[int]:
+    """Instance ids the tool proposes (the salient `auto` set)."""
+    return {inst["id"] for inst in scene["instances"] if inst.get("auto")}
+
+
+def hidden_instances(scene: dict, selected: set[int] | list | None) -> set[int]:
+    """Ids to hide when rendering = everything not selected. `selected` is the
+    director's curated set; None falls back to the auto proposal."""
+    sel = default_selected(scene) if selected is None else set(selected)
+    return {inst["id"] for inst in scene["instances"] if inst["id"] not in sel}
 
 
 # ---------- rendering (mirror: frontend/src/lib/layoutScene.ts) ----------
@@ -648,27 +706,6 @@ def render_frame(
             img = np.where(below[..., None], ground, img)
         else:
             img[below] = bottom_color
-
-        # secondary ground materials (lawn / water patches) on the plane
-        fallback_group = {"veg": "nature", "water": "water", "paved": "ground"}
-        for mat in scene.get("materials", []):
-            polys = mat["frames"][min(frame_index, len(mat["frames"]) - 1)]
-            if not polys:
-                continue
-            mask = np.zeros((h, w), np.uint8)
-            cv2.fillPoly(mask, [np.asarray(p, np.int32) for p in polys], 1)
-            sel = (mask > 0) & below
-            if not sel.any():
-                continue
-            m_color = _class_color(meta, mat["cls"], palette, fallback_group.get(mat["name"], "ground"))
-            if palette == "blockout":
-                patch = np.clip(
-                    np.array(m_color, np.float32)[None, None, :] * ramp[..., None], 0, 255
-                ).astype(np.uint8)
-                patch = np.broadcast_to(patch, (h, w, 3))
-                img = np.where(sel[..., None], patch, img)
-            else:
-                img[sel] = m_color
 
     # scenery (nature) sits behind everything else; then far → near
     active = []

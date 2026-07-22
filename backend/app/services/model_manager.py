@@ -40,6 +40,23 @@ MANAGED_MODELS: dict[str, dict] = {
         "relpath": "topformer_ade20k/topformer_ade20k_512.onnx",
         "size_mb": 12,
     },
+    # Foreground object detector for the layout channel (YOLOX, Apache-2.0).
+    # Two tiers: tiny (fast, any machine) and l (quality, strong GPU / Apple
+    # Silicon). Same decode path — only the weights differ. These are the raw
+    # (undecoded) ONNX exports from YOLOX's own ONNXRuntime demo release, which
+    # object_detect.py decodes; linked directly from the upstream stable tag.
+    "yolox_tiny": {
+        "name": "YOLOX-tiny object detector (fast)",
+        "url": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_tiny.onnx",
+        "relpath": "yolox/yolox_tiny.onnx",
+        "size_mb": 24,
+    },
+    "yolox_l": {
+        "name": "YOLOX-l object detector (quality)",
+        "url": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_l.onnx",
+        "relpath": "yolox/yolox_l.onnx",
+        "size_mb": 210,
+    },
 }
 
 RTMLIB_KEY = "pose_rtmlib"
@@ -57,6 +74,14 @@ def depth_model_path(variant: str) -> Path:
     return model_path(depth_key_for(variant))
 
 
+def detector_key_for(layout_model: str) -> str:
+    return "yolox_l" if layout_model == "quality" else "yolox_tiny"
+
+
+def detector_model_path(layout_model: str) -> Path:
+    return model_path(detector_key_for(layout_model))
+
+
 def _rtmlib_cache_dir() -> Path:
     return Path.home() / ".cache" / "rtmlib"
 
@@ -72,7 +97,9 @@ def is_ready(key: str) -> bool:
     return key in MANAGED_MODELS and model_path(key).exists()
 
 
-def required_keys_for(channels: list[str], depth_variant: str) -> list[str]:
+def required_keys_for(
+    channels: list[str], depth_variant: str, layout_model: str = "fast"
+) -> list[str]:
     """Model keys needed to extract the given channels."""
     keys: list[str] = []
     if "pose" in channels:
@@ -81,12 +108,23 @@ def required_keys_for(channels: list[str], depth_variant: str) -> list[str]:
         keys.append(depth_key_for(depth_variant))
     if "layout" in channels:
         keys.append("topformer_ade20k")
+        keys.append(detector_key_for(layout_model))
     return keys
 
 
 def download_required_cli() -> None:
-    """Pre-download the default required models during install (setup.ps1)."""
-    for key in (RTMLIB_KEY, "depth_anything_v2_int8"):
+    """Pre-download the default required models during install (setup.ps1).
+
+    Covers the default extraction channels (pose / depth / layout): pose +
+    depth-int8 are core (a failure aborts install); the layout pair (TopFormer
+    seg + YOLOX-tiny detector) is best-effort — if it can't be fetched now it
+    lazy-downloads on the first layout extraction instead of bricking setup.
+    The heavy quality detector (yolox_l) stays lazy — only fetched if a user
+    with real GPU headroom opts into it.
+    """
+    core = (RTMLIB_KEY, "depth_anything_v2_int8")
+    optional = ("topformer_ade20k", "yolox_tiny")  # layout pair
+    for key in (*core, *optional):
         if is_ready(key):
             print(f"  {key}: already present")
             continue
@@ -99,19 +137,29 @@ def download_required_cli() -> None:
                 _last[0] = pct
                 print(f"    {pct}%")
 
-        download_model(key, cb)
-        print(f"  {key}: done")
+        try:
+            download_model(key, cb)
+            print(f"  {key}: done")
+        except Exception as exc:
+            if key in optional:
+                print(f"  {key}: skipped ({exc}); will download on first layout use")
+            else:
+                raise
 
 
 def ensure_models(
-    channels: list[str], depth_variant: str, progress_cb: Callable[[float, str], None]
+    channels: list[str],
+    depth_variant: str,
+    layout_model: str,
+    progress_cb: Callable[[float, str], None],
 ) -> None:
     """Fallback download of any required-but-missing models before extraction.
 
     Normally a no-op because setup.ps1 pre-downloads them; only the first
-    extraction after switching depth precision (or a skipped install) hits this.
+    extraction after switching depth precision / layout model (or a skipped
+    install) hits this.
     """
-    missing = [k for k in required_keys_for(channels, depth_variant) if not is_ready(k)]
+    missing = [k for k in required_keys_for(channels, depth_variant, layout_model) if not is_ready(k)]
     for i, key in enumerate(missing):
         download_model(
             key,

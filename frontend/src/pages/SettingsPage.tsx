@@ -202,6 +202,22 @@ export default function SettingsPage() {
               <option value="fp32">fp32（{t('settings.depthAccurate')}）</option>
             </select>
           </label>
+          <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+            {t('settings.layoutModel')}
+            <select
+              className={select}
+              value={settings.layout_model}
+              onChange={(e) => patch({ layout_model: e.target.value as 'fast' | 'quality' })}
+            >
+              {(['fast', 'quality'] as const).map((v) => (
+                <option key={v} value={v}>
+                  {t(`settings.layout_${v}`)}
+                  {v === hw?.recommended.layout_model ? t('settings.recommendedForDevice') : ''}
+                </option>
+              ))}
+            </select>
+            <span className="text-[10px] text-slate-600">{t(`settings.layoutHint_${settings.layout_model}`)}</span>
+          </label>
         </div>
       </div>
 

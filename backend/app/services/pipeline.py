@@ -92,6 +92,7 @@ def run_extraction(
         model_manager.ensure_models(
             channels,
             str(app_config.get("depth_model_variant", "int8")),
+            str(app_config.get("layout_model", "fast")),
             lambda p, stage: registry.set_progress(task_id, 0.0, "downloading_models"),
         )
 

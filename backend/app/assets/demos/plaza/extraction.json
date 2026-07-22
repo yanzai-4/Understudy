@@ -151,11 +151,10 @@
     },
     "layout": {
       "model": "topformer_ade20k",
+      "detector": "yolox_tiny",
       "mode": "scene",
       "instances": {
-        "building": 4,
-        "vehicle": 1,
-        "person": 8
+        "person": 6
       },
       "top_class": 2,
       "bottom_class": 9

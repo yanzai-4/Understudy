@@ -198,8 +198,8 @@ export interface Ade20kAsset {
 }
 
 export interface LayoutStateData {
-  disabled_groups: string[]
-  disabled_instances: number[]
+  // director's curated subject ids; null = follow the tool's auto (salient) set
+  selected_instances: number[] | null
   disabled_backdrop: string[] // 'top' | 'bottom' — disabled planes render black
 }
 

@@ -250,14 +250,12 @@ def run_export_task(task_id: str, shot_id: str, include: dict) -> None:
             if focus_active:
                 lens_video_dirs = {"focus_preview": lens_tmp / "dof", "focus": lens_tmp / "focus"}
 
-        # ---- layout: apply keep/drop toggles; include the blockout render ----
-        # The scene is re-rendered from layout/scene.json (backdrop + tracked
-        # primitives), so dropping a group or an instance is non-destructive —
-        # the always-complete backdrop shows through, never a hole.
+        # ---- layout: render only the selected subjects + minimal backdrop ----
+        # Re-rendered from layout/scene.json; deselecting a subject just skips
+        # its primitive (the backdrop shows through). Default selection = the
+        # tool's salient `auto` set; the director's curation overrides it.
         layout_tmp = exports_dir / f"_layout_{task_id}"
         blockout_dir: Path | None = None
-        disabled_groups: list[str] = []
-        disabled_instances: list[int] = []
         disabled_backdrop: list[str] = []
         if "layout" in channels:
             from app.extractors.layout import load_ade20k
@@ -266,24 +264,22 @@ def run_export_task(task_id: str, shot_id: str, include: dict) -> None:
             ade_meta = load_ade20k()
             lay_state = db.get(LayoutState, shot_id)
             state = lay_state.data if lay_state else {}
-            disabled_groups = [
-                g for g in state.get("disabled_groups", []) if g in ade_meta["blockout_palette"]
-            ]
-            disabled_instances = [int(i) for i in state.get("disabled_instances", [])]
+            selected = state.get("selected_instances")  # None → auto proposal
             disabled_backdrop = [b for b in state.get("disabled_backdrop", []) if b in ("top", "bottom")]
             scene = layout_scene.load_scene(shot_dir)
-            if scene and (disabled_groups or disabled_instances or disabled_backdrop or zoom_active):
+            curated = selected is not None or bool(disabled_backdrop)
+            if scene and (curated or zoom_active):
                 import shutil
 
                 shutil.rmtree(layout_tmp, ignore_errors=True)
                 (layout_tmp / "layout").mkdir(parents=True)
                 (layout_tmp / "blockout").mkdir(parents=True)
-                dg, di = set(disabled_groups), set(disabled_instances)
+                di = layout_scene.hidden_instances(scene, selected)
                 dbk = set(disabled_backdrop)
                 for i in range(scene["frame_count"]):
                     zoom = lens_service.zoom_params_at(lens, i)
-                    ade_img = layout_scene.render_frame(scene, ade_meta, i, "ade", dg, di, dbk)
-                    block_img = layout_scene.render_frame(scene, ade_meta, i, "blockout", dg, di, dbk)
+                    ade_img = layout_scene.render_frame(scene, ade_meta, i, "ade", set(), di, dbk)
+                    block_img = layout_scene.render_frame(scene, ade_meta, i, "blockout", set(), di, dbk)
                     if zoom:
                         ade_img = lens_service.apply_zoom(ade_img, *zoom)
                         block_img = lens_service.apply_zoom(block_img, *zoom)
@@ -365,8 +361,8 @@ def run_export_task(task_id: str, shot_id: str, include: dict) -> None:
                 {
                     "palette": "ade20k",
                     "mode": "scene",
-                    "disabled_groups": disabled_groups,
-                    "disabled_instances": disabled_instances,
+                    # None = the tool's auto (salient) selection was kept as-is
+                    "selected_instances": state.get("selected_instances") if "layout" in channels else None,
                     "disabled_backdrop": disabled_backdrop,
                 }
                 if "layout" in channels
