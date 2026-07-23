@@ -8,6 +8,7 @@ Two kinds of models:
 """
 
 import logging
+import shutil
 from pathlib import Path
 from typing import Callable
 
@@ -64,6 +65,27 @@ RTMLIB_KEY = "pose_rtmlib"
 
 def model_path(key: str) -> Path:
     return settings.models_dir / MANAGED_MODELS[key]["relpath"]
+
+
+def seed_bundled_models() -> list[str]:
+    """Copy any model bundled with a frozen build into the writable models dir
+    (first-run, zero-download for depth + layout). Idempotent; a no-op from
+    source, where no bundled models dir exists."""
+    bundled_root = settings.bundled_models_dir
+    if not bundled_root.exists():
+        return []
+    seeded: list[str] = []
+    for key, spec in MANAGED_MODELS.items():
+        rel = spec.get("relpath")
+        if not rel:
+            continue
+        src = bundled_root / rel
+        dst = settings.models_dir / rel
+        if src.exists() and not dst.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            seeded.append(key)
+    return seeded
 
 
 def depth_key_for(variant: str) -> str:

@@ -7,6 +7,7 @@ once /api/health reports 200, so the user never sees a connection-refused page
 during the (few-second) server boot. Launched by Understudy.exe.
 """
 
+import multiprocessing
 import socket
 import sys
 import threading
@@ -94,13 +95,17 @@ def _health_ok(timeout: float = 1.0) -> bool:
 def _run_server() -> None:
     import uvicorn
 
+    # Pass the app object (not an "app.main:app" import string): a frozen build
+    # has no importable module path, and reload is off anyway.
+    from app.main import app as fastapi_app
+
     # A previous instance may still be releasing the port; wait briefly for it.
     for _ in range(40):
         if not _tcp_open():
             break
         time.sleep(0.25)
     try:
-        uvicorn.run("app.main:app", host=HOST, port=PORT, log_level="warning")
+        uvicorn.run(fastapi_app, host=HOST, port=PORT, log_level="warning")
     except Exception:
         pass  # bind failed (another instance won the race) — health poll will find it
 
@@ -191,4 +196,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     main()

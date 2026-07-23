@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: Understudy-windows.zip
+          - os: macos-14
+            artifact: Understudy-macos.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build frontend
+        run: npm --prefix frontend ci && npm --prefix frontend run build
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt pyinstaller
+
+      - name: Fetch bundled models
+        run: python packaging/fetch_models.py
+
+      - name: PyInstaller
+        run: pyinstaller packaging/understudy.spec --noconfirm --distpath packaging/dist --workpath packaging/build
+
+      - name: Zip (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path packaging/dist/Understudy/* -DestinationPath ${{ matrix.artifact }}
+
+      - name: Zip (macOS)
+        if: runner.os == 'macOS'
+        run: cd packaging/dist && zip -ry ../../${{ matrix.artifact }} Understudy.app
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact }}

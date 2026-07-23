@@ -12,6 +12,14 @@ frontend/dist/
 data/
 models/
 
+# Packaging build artifacts
+packaging/models/
+packaging/build/
+packaging/dist/
+
+# Scratch inputs for generated doc figures (see scripts/make_manage_figure.py)
+docs/_*.png
+
 # Misc
 .DS_Store
 Thumbs.db

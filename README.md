@@ -49,6 +49,11 @@ Perfect signals still need words that agree with them — and hand-writing a cin
 
 <p align="center"><img src="docs/feature-prompt.png" alt="Cinematography controls with a live prompt preview" width="820"></p>
 
+### 🗂️ Organize the whole shoot
+Real projects aren't one clip. Group shots by **scene** and **version**, tag and filter them, mark the take you picked, and duplicate a shot as a new version (reusing its extraction — no re-processing). Flip between a **storyboard** grid and a **whiteboard** where you drag shots into scene frames and wire the sequence together.
+
+<p align="center"><img src="docs/feature-manage.png" alt="Storyboard grid and spatial whiteboard for organizing shots by scene and version" width="820"></p>
+
 ## How it works
 
 A film holds many shots; each shot runs a six-step wizard:
@@ -57,7 +62,18 @@ A film holds many shots; each shot runs a six-step wizard:
 
 Organize a whole short by scene and version, duplicate a shot as a new take (reusing its extraction), and lay the sequence out on a spatial whiteboard.
 
-## Install & run
+## Download & run (no setup)
+
+Grab the latest build from [Releases](https://github.com/yanzai-4/Understudy/releases) — no Python, Node, or install step.
+
+- **Windows**: unzip, run `Understudy.exe`. First launch shows a SmartScreen prompt ("unknown publisher") → **More info → Run anyway** (the build is unsigned).
+- **macOS**: unzip, drag `Understudy.app` to Applications, then **right-click → Open** the first time (or run `xattr -dr com.apple.quarantine Understudy.app`) — it isn't notarized.
+
+The depth and layout models ship inside the app, so those don't download. The pose model is fetched once, the first time you extract the pose channel. Your films, exports and any extra models live in a user-data folder (`%LOCALAPPDATA%\Understudy` on Windows, `~/Library/Application Support/Understudy` on macOS).
+
+Want to build from source or hack on it? See below.
+
+## Install & run (from source)
 
 Everything lives inside the project folder; the launcher sits next to it. Requires **Python 3.11** (ML wheels don't support 3.13/3.14 yet) and **Node.js**.
 

@@ -43,6 +43,9 @@ app.include_router(api_router)
 @app.on_event("startup")
 def on_startup() -> None:
     settings.ensure_dirs()
+    from app.services.model_manager import seed_bundled_models
+
+    seed_bundled_models()
     init_db()
     _seed_demos_on_first_launch()
 
