@@ -30,8 +30,10 @@ jobs:
           node-version: '20'
 
       - name: Build frontend
-        # npm install (not ci) so a version-only lockfile drift can't fail the build
-        run: npm --prefix frontend install && npm --prefix frontend run build
+        # run inside frontend/ (npm --prefix doesn't change where package.json is
+        # read from, which broke on Windows/pwsh); npm install tolerates lockfile drift
+        working-directory: frontend
+        run: npm install && npm run build
 
       - name: Install Python deps
         run: |
