@@ -67,7 +67,7 @@ Organize a whole short by scene and version, duplicate a shot as a new take (reu
 Grab the latest build from [Releases](https://github.com/yanzai-4/Understudy/releases) — no Python, Node, or install step.
 
 - **Windows**: unzip, run `Understudy.exe`. First launch shows a SmartScreen prompt ("unknown publisher") → **More info → Run anyway** (the build is unsigned).
-- **macOS**: unzip, drag `Understudy.app` to Applications, then **right-click → Open** the first time (or run `xattr -dr com.apple.quarantine Understudy.app`) — it isn't notarized.
+- **macOS**: unzip and move `Understudy.app` to **Applications**. The build is ad-hoc signed but **not notarized**, so the first launch is blocked. Grant it once via **System Settings → Privacy & Security → "Open Anyway"** (macOS 15 Sequoia removed the old right-click → Open shortcut). Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/Understudy.app`, then open it normally.
 
 The depth and layout models ship inside the app, so those don't download. The pose model is fetched once, the first time you extract the pose channel. Your films, exports and any extra models live in a user-data folder (`%LOCALAPPDATA%\Understudy` on Windows, `~/Library/Application Support/Understudy` on macOS).
 

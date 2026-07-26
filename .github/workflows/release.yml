@@ -47,9 +47,20 @@ jobs:
         if: runner.os == 'Windows'
         run: Compress-Archive -Path packaging/dist/Understudy/* -DestinationPath ${{ matrix.artifact }}
 
+      # Apple Silicon refuses to run a binary with no / broken signature, so
+      # ad-hoc sign the whole bundle (deep). Not notarized; users still grant
+      # it once via Privacy & Security, but it won't be reported as "damaged".
+      - name: Ad-hoc codesign (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          codesign --force --deep --sign - packaging/dist/Understudy.app
+          codesign --verify --deep --strict packaging/dist/Understudy.app && echo "signature ok"
+
+      # ditto preserves the .app's symlinks + signature; plain `zip` corrupts
+      # them and macOS then reports the app as "damaged".
       - name: Zip (macOS)
         if: runner.os == 'macOS'
-        run: cd packaging/dist && zip -ry ../../${{ matrix.artifact }} Understudy.app
+        run: ditto -c -k --keepParent packaging/dist/Understudy.app ${{ matrix.artifact }}
 
       - name: Attach to release
         uses: softprops/action-gh-release@v2
