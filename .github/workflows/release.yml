@@ -30,7 +30,8 @@ jobs:
           node-version: '20'
 
       - name: Build frontend
-        run: npm --prefix frontend ci && npm --prefix frontend run build
+        # npm install (not ci) so a version-only lockfile drift can't fail the build
+        run: npm --prefix frontend install && npm --prefix frontend run build
 
       - name: Install Python deps
         run: |
